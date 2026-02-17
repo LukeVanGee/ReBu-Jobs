@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // ============================================================
 // API INTEGRATION POINTS
@@ -24,13 +25,17 @@ const recentJobs = [];
 const stats = [];
 
 export default function ReBuHomepage() {
-  const [activeNav, setActiveNav] = useState("Home");
+  const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [hoveredJob, setHoveredJob] = useState(null);
 
-  const navItems = ["Home", "Job Board", "Post a Job"];
+  const navItems = [
+    { label: "Home", path: "/home" },
+    { label: "Job Board", path: "/job-board" },
+    { label: "Post a Job", path: "/post-job" },
+  ];
 
   return (
     <div style={{
@@ -55,42 +60,39 @@ export default function ReBuHomepage() {
       }}>
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
-          <div style={{
-            fontSize: "22px",
-            fontWeight: 700,
-            letterSpacing: "-0.5px",
-            cursor: "pointer",
-          }}>
+          <div
+            onClick={() => navigate("/home")}
+            style={{
+              fontSize: "22px",
+              fontWeight: 700,
+              letterSpacing: "-0.5px",
+              cursor: "pointer",
+            }}
+          >
             <span style={{ color: "#e2e8f0" }}>Re</span>
             <span style={{ color: "#38bdf8" }}>Bu</span>
           </div>
 
-          {/* Nav Links — wire these to your React Router routes */}
+          {/* Nav Links — wired to React Router routes */}
           <nav style={{ display: "flex", gap: "4px" }}>
             {navItems.map((item) => (
               <button
-                key={item}
-                onClick={() => setActiveNav(item)}
+                key={item.label}
+                onClick={() => navigate(item.path)}
                 style={{
                   padding: "8px 16px",
                   borderRadius: "8px",
                   border: "none",
-                  background: activeNav === item ? "rgba(56, 189, 248, 0.1)" : "transparent",
-                  color: activeNav === item ? "#38bdf8" : "#94a3b8",
+                  background: item.label === "Home" ? "rgba(56, 189, 248, 0.1)" : "transparent",
+                  color: item.label === "Home" ? "#38bdf8" : "#94a3b8",
                   fontSize: "14px",
                   fontWeight: 500,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
                   fontFamily: "inherit",
                 }}
-                onMouseEnter={(e) => {
-                  if (activeNav !== item) e.target.style.color = "#cbd5e1";
-                }}
-                onMouseLeave={(e) => {
-                  if (activeNav !== item) e.target.style.color = "#94a3b8";
-                }}
               >
-                {item}
+                {item.label}
               </button>
             ))}
           </nav>
@@ -100,6 +102,7 @@ export default function ReBuHomepage() {
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           {/* Wire to your login route */}
           <button
+            onClick={() => navigate("/login")}
             style={{
               padding: "8px 20px",
               borderRadius: "8px",
@@ -123,6 +126,7 @@ export default function ReBuHomepage() {
           </button>
           {/* Wire to your signup route */}
           <button
+            onClick={() => navigate("/login")}
             style={{
               padding: "8px 20px",
               borderRadius: "8px",
@@ -307,7 +311,6 @@ export default function ReBuHomepage() {
             fontSize: "14px",
             marginBottom: "36px",
           }}>
-            {/* This empty state shows until the stats API is connected */}
             Stats will appear here once connected to the backend.
           </div>
         )}
@@ -319,15 +322,18 @@ export default function ReBuHomepage() {
             <h2 style={{ fontSize: "17px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>
               Browse Categories
             </h2>
-            <button style={{
-              background: "none",
-              border: "none",
-              color: "#38bdf8",
-              fontSize: "13px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontWeight: 500,
-            }}>View all →</button>
+            <button
+              onClick={() => navigate("/job-board")}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#38bdf8",
+                fontSize: "13px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontWeight: 500,
+              }}
+            >View all →</button>
           </div>
           {jobCategories.length > 0 ? (
             <div style={{
@@ -382,7 +388,6 @@ export default function ReBuHomepage() {
               color: "#475569",
               fontSize: "14px",
             }}>
-              {/* This empty state shows until the categories API is connected */}
               Job categories will appear here once connected to the backend.
             </div>
           )}
@@ -395,15 +400,18 @@ export default function ReBuHomepage() {
             <h2 style={{ fontSize: "17px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>
               Recent Jobs Near You
             </h2>
-            <button style={{
-              background: "none",
-              border: "none",
-              color: "#38bdf8",
-              fontSize: "13px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontWeight: 500,
-            }}>See all jobs →</button>
+            <button
+              onClick={() => navigate("/job-board")}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#38bdf8",
+                fontSize: "13px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontWeight: 500,
+              }}
+            >See all jobs →</button>
           </div>
           {recentJobs.length > 0 ? (
             <div style={{
@@ -466,7 +474,6 @@ export default function ReBuHomepage() {
               color: "#475569",
               fontSize: "14px",
             }}>
-              {/* This empty state shows until the jobs API is connected */}
               Recent jobs will appear here once connected to the backend.
             </div>
           )}
