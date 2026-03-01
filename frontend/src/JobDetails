@@ -1,0 +1,502 @@
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+// ============================================================
+// API INTEGRATION POINT
+// Fetch a single job by ID from your Django backend.
+// GET /api/jobs/:id (or equivalent Supabase query)
+// Expected shape:
+// {
+//   id: number,
+//   title: string,
+//   description: string,
+//   category: string,
+//   budget: string,
+//   postedBy: string,
+//   postedByRating: number,
+//   postedAt: string,
+//   urgency: string | null,
+//   status: "open" | "accepted" | "in_progress" | "completed",
+//   location: string,
+//   address: string,
+//   lat: number,          // for Google Maps embed
+//   lng: number,          // for Google Maps embed
+//   acceptedBy: string | null,
+//   acceptedByRating: number | null,
+//   estimatedETA: string | null,
+// }
+// ============================================================
+const job = null; // Replace with fetched job data via useEffect
+
+const statusColors = {
+  open: { bg: "rgba(52, 211, 153, 0.12)", color: "#34d399", label: "Open" },
+  accepted: { bg: "rgba(56, 189, 248, 0.12)", color: "#38bdf8", label: "Accepted" },
+  in_progress: { bg: "rgba(251, 191, 36, 0.12)", color: "#fbbf24", label: "In Progress" },
+  completed: { bg: "rgba(148, 163, 184, 0.12)", color: "#94a3b8", label: "Completed" },
+};
+
+const statusSteps = ["open", "accepted", "in_progress", "completed"];
+
+export default function JobDetails() {
+  const navigate = useNavigate();
+  const { id } = useParams(); // Job ID from URL: /job/:id
+  const [role, setRole] = useState("client"); // "client" or "worker"
+
+  // TODO: Fetch job data using the id
+  // useEffect(() => {
+  //   fetch(`/api/jobs/${id}`)
+  //     .then(res => res.json())
+  //     .then(data => setJob(data))
+  //     .catch(err => console.error(err));
+  // }, [id]);
+
+  const currentStepIndex = job ? statusSteps.indexOf(job.status) : -1;
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#0a0f1a",
+      color: "#e2e8f0",
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    }}>
+      {/* ===================== HEADER ===================== */}
+      <header style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 40px",
+        height: "64px",
+        background: "linear-gradient(180deg, #0d1526 0%, #0a1220 100%)",
+        borderBottom: "1px solid rgba(56, 189, 248, 0.08)",
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        backdropFilter: "blur(12px)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
+          <div
+            onClick={() => navigate("/home")}
+            style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.5px", cursor: "pointer" }}
+          >
+            <span style={{ color: "#e2e8f0" }}>Re</span>
+            <span style={{ color: "#38bdf8" }}>Bu</span>
+          </div>
+          <nav style={{ display: "flex", gap: "4px" }}>
+            {[
+              { label: "Home", path: "/home" },
+              { label: "Job Board", path: "/job-board" },
+              { label: "Post a Job", path: "/post-job" },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "transparent",
+                  color: "#94a3b8",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  fontFamily: "inherit",
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <button style={{ padding: "8px 20px", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.25)", background: "transparent", color: "#38bdf8", fontSize: "13px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>Log In</button>
+          <button style={{ padding: "8px 20px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)", color: "#fff", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Sign Up</button>
+        </div>
+      </header>
+
+      {/* ===================== MAIN CONTENT ===================== */}
+      <main style={{ maxWidth: "1120px", margin: "0 auto", padding: "32px 40px" }}>
+
+        {/* Back Button & Role Toggle */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+          <button
+            onClick={() => navigate("/job-board")}
+            style={{
+              display: "flex", alignItems: "center", gap: "6px",
+              background: "none", border: "none", color: "#38bdf8",
+              fontSize: "14px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            ← Back to Job Board
+          </button>
+
+          {/* Client / Worker Toggle */}
+          <div style={{
+            display: "flex",
+            background: "#111827",
+            borderRadius: "10px",
+            padding: "4px",
+            border: "1px solid rgba(56, 189, 248, 0.08)",
+          }}>
+            {["client", "worker"].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRole(r)}
+                style={{
+                  padding: "8px 20px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: role === r ? "rgba(56, 189, 248, 0.12)" : "transparent",
+                  color: role === r ? "#38bdf8" : "#64748b",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  fontFamily: "inherit",
+                  textTransform: "capitalize",
+                }}
+              >
+                {r === "client" ? "🏠 Client" : "🔧 Worker"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {job ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "24px" }}>
+
+            {/* ========== LEFT COLUMN: Job Info ========== */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
+              {/* Title & Status */}
+              <div style={{
+                padding: "24px",
+                borderRadius: "12px",
+                background: "#111827",
+                border: "1px solid rgba(56, 189, 248, 0.06)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                  <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#f1f5f9", margin: 0 }}>
+                    {job.title}
+                  </h1>
+                  {job.urgency && (
+                    <span style={{
+                      padding: "3px 10px", borderRadius: "4px",
+                      background: "rgba(239, 68, 68, 0.12)", color: "#f87171",
+                      fontSize: "12px", fontWeight: 600,
+                    }}>{job.urgency}</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
+                  <span style={{
+                    padding: "4px 12px", borderRadius: "16px",
+                    background: (statusColors[job.status] || statusColors.open).bg,
+                    color: (statusColors[job.status] || statusColors.open).color,
+                    fontSize: "12px", fontWeight: 600,
+                  }}>
+                    {(statusColors[job.status] || statusColors.open).label}
+                  </span>
+                  <span style={{ padding: "4px 12px", borderRadius: "16px", background: "rgba(56, 189, 248, 0.08)", color: "#38bdf8", fontSize: "12px", fontWeight: 500 }}>
+                    {job.category}
+                  </span>
+                </div>
+                <p style={{ fontSize: "14px", color: "#cbd5e1", lineHeight: "1.6", margin: 0 }}>
+                  {job.description}
+                </p>
+              </div>
+
+              {/* Status Progress Tracker */}
+              <div style={{
+                padding: "24px",
+                borderRadius: "12px",
+                background: "#111827",
+                border: "1px solid rgba(56, 189, 248, 0.06)",
+              }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#f1f5f9", margin: "0 0 16px 0" }}>
+                  Job Status
+                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
+                  {statusSteps.map((step, i) => (
+                    <div key={step} style={{ display: "flex", alignItems: "center", flex: i < statusSteps.length - 1 ? 1 : "none" }}>
+                      <div style={{
+                        width: "36px", height: "36px", borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: i <= currentStepIndex ? "rgba(56, 189, 248, 0.15)" : "rgba(56, 189, 248, 0.04)",
+                        border: i <= currentStepIndex ? "2px solid #38bdf8" : "2px solid #1e293b",
+                        transition: "all 0.2s ease",
+                        flexShrink: 0,
+                      }}>
+                        <span style={{
+                          fontSize: "11px", fontWeight: 700,
+                          color: i <= currentStepIndex ? "#38bdf8" : "#475569",
+                        }}>
+                          {i <= currentStepIndex ? "✓" : i + 1}
+                        </span>
+                      </div>
+                      {i < statusSteps.length - 1 && (
+                        <div style={{
+                          flex: 1, height: "2px",
+                          background: i < currentStepIndex ? "#38bdf8" : "#1e293b",
+                          transition: "all 0.2s ease",
+                        }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
+                  {statusSteps.map((step) => (
+                    <span key={step} style={{ fontSize: "11px", color: "#64748b", textTransform: "capitalize" }}>
+                      {step.replace("_", " ")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Google Maps Embed Placeholder */}
+              <div style={{
+                padding: "24px",
+                borderRadius: "12px",
+                background: "#111827",
+                border: "1px solid rgba(56, 189, 248, 0.06)",
+              }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#f1f5f9", margin: "0 0 12px 0" }}>
+                  Location
+                </h3>
+                <p style={{ fontSize: "13px", color: "#94a3b8", margin: "0 0 12px 0" }}>
+                  📍 {job.address || job.location}
+                </p>
+                {/* TODO: Replace with actual Google Maps embed using your API key */}
+                {/* See backlog item TM13-24 and TM13-26 */}
+                {/*
+                  <iframe
+                    width="100%"
+                    height="250"
+                    style={{ border: 0, borderRadius: "8px" }}
+                    loading="lazy"
+                    src={`https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${job.lat},${job.lng}`}
+                  />
+                */}
+                <div style={{
+                  width: "100%",
+                  height: "200px",
+                  borderRadius: "8px",
+                  background: "rgba(56, 189, 248, 0.04)",
+                  border: "1px dashed rgba(56, 189, 248, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#475569",
+                  fontSize: "13px",
+                }}>
+                  Google Maps embed will appear here (TM13-24, TM13-26)
+                </div>
+
+                {/* ETA Section */}
+                {/* TODO: Wire to Google Maps Distance Matrix API (TM13-25) */}
+                {job.estimatedETA && (
+                  <div style={{
+                    marginTop: "12px",
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    background: "rgba(56, 189, 248, 0.06)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}>
+                    <span style={{ fontSize: "16px" }}>🕐</span>
+                    <span style={{ fontSize: "13px", color: "#38bdf8", fontWeight: 500 }}>
+                      Estimated arrival: {job.estimatedETA}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ========== RIGHT COLUMN: Details Sidebar ========== */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
+              {/* Budget */}
+              <div style={{
+                padding: "24px",
+                borderRadius: "12px",
+                background: "#111827",
+                border: "1px solid rgba(56, 189, 248, 0.06)",
+                textAlign: "center",
+              }}>
+                <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                  Budget
+                </div>
+                <div style={{ fontSize: "28px", fontWeight: 700, color: "#34d399" }}>
+                  {job.budget}
+                </div>
+              </div>
+
+              {/* Posted By */}
+              <div style={{
+                padding: "24px",
+                borderRadius: "12px",
+                background: "#111827",
+                border: "1px solid rgba(56, 189, 248, 0.06)",
+              }}>
+                <h3 style={{ fontSize: "13px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 12px 0" }}>
+                  Posted By
+                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{
+                    width: "40px", height: "40px", borderRadius: "50%",
+                    background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                    border: "2px solid #1e293b",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#94a3b8", fontSize: "16px", fontWeight: 600,
+                  }}>
+                    {job.postedBy[0]}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0" }}>{job.postedBy}</div>
+                    <div style={{ fontSize: "12px", color: "#fbbf24" }}>{"★".repeat(Math.round(job.postedByRating))} {job.postedByRating}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "12px" }}>
+                  Posted {job.postedAt}
+                </div>
+              </div>
+
+              {/* Accepted By (if applicable) */}
+              {job.acceptedBy && (
+                <div style={{
+                  padding: "24px",
+                  borderRadius: "12px",
+                  background: "#111827",
+                  border: "1px solid rgba(56, 189, 248, 0.06)",
+                }}>
+                  <h3 style={{ fontSize: "13px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 12px 0" }}>
+                    Accepted By
+                  </h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{
+                      width: "40px", height: "40px", borderRadius: "50%",
+                      background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                      border: "2px solid #1e293b",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#94a3b8", fontSize: "16px", fontWeight: 600,
+                    }}>
+                      {job.acceptedBy[0]}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0" }}>{job.acceptedBy}</div>
+                      {job.acceptedByRating && (
+                        <div style={{ fontSize: "12px", color: "#fbbf24" }}>{"★".repeat(Math.round(job.acceptedByRating))} {job.acceptedByRating}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{
+                padding: "24px",
+                borderRadius: "12px",
+                background: "#111827",
+                border: "1px solid rgba(56, 189, 248, 0.06)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}>
+                {role === "client" ? (
+                  <>
+                    {/* Client Actions */}
+                    {(job.status === "accepted" || job.status === "in_progress") && (
+                      /* TODO: Wire to POST /api/jobs/{id}/complete */
+                      <button style={{
+                        padding: "12px", borderRadius: "8px", border: "none",
+                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                        color: "#fff", fontSize: "14px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>
+                        ✓ Mark as Completed
+                      </button>
+                    )}
+                    {job.status === "open" && (
+                      <>
+                        {/* TODO: Wire to PUT /api/jobs/{id} */}
+                        <button style={{
+                          padding: "12px", borderRadius: "8px",
+                          border: "1px solid rgba(56, 189, 248, 0.25)",
+                          background: "transparent", color: "#38bdf8", fontSize: "14px", fontWeight: 600,
+                          cursor: "pointer", fontFamily: "inherit",
+                        }}>
+                          Edit Job
+                        </button>
+                        {/* TODO: Wire to DELETE /api/jobs/{id} */}
+                        <button style={{
+                          padding: "12px", borderRadius: "8px",
+                          border: "1px solid rgba(239, 68, 68, 0.25)",
+                          background: "transparent", color: "#f87171", fontSize: "14px", fontWeight: 600,
+                          cursor: "pointer", fontFamily: "inherit",
+                        }}>
+                          Delete Job
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Worker Actions */}
+                    {job.status === "open" && (
+                      /* TODO: Wire to POST /api/jobs/{id}/accept */
+                      <button style={{
+                        padding: "12px", borderRadius: "8px", border: "none",
+                        background: "linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)",
+                        color: "#fff", fontSize: "14px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>
+                        Accept This Job
+                      </button>
+                    )}
+                    {(job.status === "accepted" || job.status === "in_progress") && (
+                      /* TODO: Wire to POST /api/jobs/{id}/complete */
+                      <button style={{
+                        padding: "12px", borderRadius: "8px", border: "none",
+                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                        color: "#fff", fontSize: "14px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>
+                        ✓ Mark as Completed
+                      </button>
+                    )}
+                  </>
+                )}
+                {job.status === "completed" && (
+                  <div style={{
+                    padding: "12px", borderRadius: "8px",
+                    background: "rgba(148, 163, 184, 0.08)",
+                    textAlign: "center", color: "#94a3b8", fontSize: "14px", fontWeight: 500,
+                  }}>
+                    This job has been completed
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Empty state — shown until job data is fetched */
+          <div style={{
+            padding: "60px 24px",
+            borderRadius: "12px",
+            background: "#111827",
+            border: "1px solid rgba(56, 189, 248, 0.06)",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>📄</div>
+            <p style={{ color: "#64748b", fontSize: "15px", margin: "0 0 4px 0" }}>
+              Job details will appear here once connected to the backend.
+            </p>
+            <p style={{ color: "#475569", fontSize: "13px", margin: 0 }}>
+              Fetching job ID: {id}
+            </p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
