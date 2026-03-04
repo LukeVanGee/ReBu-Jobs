@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getJobs, deleteJob, seedJobsIfEmpty } from "./utils/jobStore"; // 3/3 
 
 // ============================================================
 // API INTEGRATION POINTS
@@ -20,7 +21,24 @@ import { useNavigate } from "react-router-dom";
 //   location: string
 // }
 // ============================================================
-const jobs = [];
+const [jobs, setJobs] = useState([]);
+
+useEffect(() => {
+  seedJobsIfEmpty();
+  setJobs(getJobs()); // 3/3
+}, []);
+
+function handleDelete(id) {
+  const confirmDelete = window.confirm("Delete this job?");
+
+  if (!confirmDelete) {
+    return;
+  }
+
+  deleteJob(id);
+  setJobs(getJobs());
+}
+// 
 
 const categoryFilters = ["All", "Lawn Care", "Snow Removal", "Groceries", "Cleaning", "Moving Help", "Handyman"];
 
@@ -270,7 +288,11 @@ export default function JobBoard() {
                       <div style={{ display: "flex", gap: "6px" }}>
                         {/* TODO: Wire to PUT /api/jobs/{job.id} */}
                         <button
-                          onClick={(e) => { e.stopPropagation(); /* TODO: Edit job */ }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/post-job?edit=${job.id}`);
+                            }} // 3/3 changes made
+                            
                           style={{
                             padding: "6px 14px", borderRadius: "6px", border: "1px solid rgba(56, 189, 248, 0.2)",
                             background: "transparent", color: "#38bdf8", fontSize: "12px", fontWeight: 500,
@@ -279,7 +301,10 @@ export default function JobBoard() {
                         >Edit</button>
                         {/* TODO: Wire to DELETE /api/jobs/{job.id} */}
                         <button
-                          onClick={(e) => { e.stopPropagation(); /* TODO: Delete job */ }}
+                          onClick={(e) => {
+                            e.stopPropagation(); 
+                            handleDelete(job.id);         // 3/3 changes made                 
+                          }}
                           style={{
                             padding: "6px 14px", borderRadius: "6px", border: "1px solid rgba(239, 68, 68, 0.2)",
                             background: "transparent", color: "#f87171", fontSize: "12px", fontWeight: 500,
