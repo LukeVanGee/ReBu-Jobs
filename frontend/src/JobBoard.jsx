@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getJobs, deleteJob, seedJobsIfEmpty } from "./utils/jobStore"; // 3/3 
+import { useState, useEffect } from "react";
 
 // ============================================================
 // API INTEGRATION POINTS
@@ -21,23 +21,6 @@ import { getJobs, deleteJob, seedJobsIfEmpty } from "./utils/jobStore"; // 3/3
 //   location: string
 // }
 // ============================================================
-const [jobs, setJobs] = useState([]);
-
-useEffect(() => {
-  seedJobsIfEmpty();
-  setJobs(getJobs()); // 3/3
-}, []);
-
-function handleDelete(id) {
-  const confirmDelete = window.confirm("Delete this job?");
-
-  if (!confirmDelete) {
-    return;
-  }
-
-  deleteJob(id);
-  setJobs(getJobs());
-}
 // 
 
 const categoryFilters = ["All", "Lawn Care", "Snow Removal", "Groceries", "Cleaning", "Moving Help", "Handyman"];
@@ -62,6 +45,23 @@ export default function JobBoard() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredJob, setHoveredJob] = useState(null);
+  const [jobs, setJobs] = useState([]);
+
+  function handleDelete(id) {
+  const confirmDelete = window.confirm("Delete this job?");
+
+  if (!confirmDelete) {
+    return;
+  }
+
+  deleteJob(id);
+  setJobs(getJobs());
+}
+
+useEffect(() => {
+  seedJobsIfEmpty();
+  setJobs(getJobs()); // 3/3
+}, []);
 
   // Filter jobs by category and search query
   const filteredJobs = jobs.filter((job) => {
