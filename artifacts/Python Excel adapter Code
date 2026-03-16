@@ -1,0 +1,43 @@
+## Excel/CSV adapter file 
+import openpyxl
+
+class EmployeeDatabase:
+    def __init__(self, DB_name="employee_records_DB.xlsx"):
+        self.DB_name=DB_name
+        try:
+            self.wb=openpyxl.load_workbook(filename=DB_name)
+        except FileNotFoundError:
+            self.wb = openpyxl.Workbook()
+            self.sheet = self.wb.active
+            self.sheet.title = "Employees"
+            self.sheet.append(["ID","first_name", "last _name", "birthdate", "hire_date", "job_title"])
+            self.wb.save(DB_name)
+        self.sheet = self.wb.active
+        ##Check if the file exists, create it if not
+    def insert_employee(self, first_name, last_name, birthdate, hire_date, job_title):
+        new_employee=[self.sheet.max_row, first_name, last_name, birthdate, hire_date, job_title]
+        ws= self.wb.active
+        ws.append(new_employee)
+        self.wb.save(self.DB_name)
+    def get_employee(self, first_name, last_name):
+        ws=self.wb.active
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if row[1] == first_name and row[2] == last_name:
+                return "ID: " + str(row[0]) + ", " + \
+                "Name: " + row[1] + " " + row[2] + ", " \
+                "Birthdate: " + row[3] + ", " + \
+                "Hire Date: " + row[4] + ", " + \
+                "Job Title: " + row[5]
+        return None #No employee found
+    def get_all_employees(self):
+        employee_list =[]
+        ws=self.wb.active
+        for row in ws.iter_rows(min_row=2, values_only =True):
+            employee_list.append("ID: " + str(row[0]) + ", " + \
+                "Name: " + row[1] + " " + row[2] + ", " \
+                "Birthdate: " + row[3] + ", " + \
+                "Hire Date: " + row[4] + ", " + \
+                "Job Title: " + row[5])
+        return employee_list
+    def close_connection(self):
+        pass
