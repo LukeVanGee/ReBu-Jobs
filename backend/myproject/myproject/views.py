@@ -1,82 +1,125 @@
-import json
-from django.http import JsonResponse
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-
-from .models import Item
-
-
-def json_error(message, status=400):
-    return JsonResponse({'error': message}, status=status)
+importfrom django.shortcuts import render
+from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from .models import Job
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class ItemListView(View):
-    """
-    GET  /api/items/       - List all items
-    POST /api/items/       - Create a new item
-    """
+@api_view(['POST'])
+def signup(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+    name = request.data.get('name')
+    role = request.data.get('role')
 
-    def get(self, request):
-        items = list(Item.objects.all().values())
-        return JsonResponse({'items': items, 'count': len(items)})
+    if User.objects.filter(username=email).exists():
+        return Response({'error': 'Email already registered'}, status=400)
 
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return json_error('Invalid JSON body')
+    user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
+    user.profile.role = role
+    user.profile.save()
 
-        name = data.get('name', '').strip()
-        if not name:
-            return json_error('Field "name" is required')
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        'token': str(refresh.access_token),
+        'name': name,
+        'role': role,
+        'rating': 0,
+        'reviewCount': 0,
+        'stats': {'jobsPosted': 0, 'avgPay': 'N/A', 'avgDuration': 'N/A'} if role == 'customer'
+                 else {'jobsDone': 0, 'qualityRating': 'N/A', 'avgPayReceived': 'N/A'}
+    }, status=201)
 
-        item = Item.objects.create(
-            name=name,
-            description=data.get('description', ''),
-            price=data.get('price', 0.0),
+
+@api_view(['POST'])
+def login(request):
+    from django.contrib.auth import authenticate
+    email = request.data.get('email')
+    password = request.data.get('password')
+    user = authenticate(username=email, password=password)
+
+    if user:
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'token': str(refresh.access_token),
+            'name': user.first_name,
+            'role': user.profile.role,
+            'rating': user.profile.rating,
+            'reviewCount': user.profile.review_count,
+            'stats': {'jobsPosted': 0, 'avgPay': 'N/A', 'avgDuration': 'N/A'} if user.profile.role == 'customer'
+                     else {'jobsDone': 0, 'qualityRating': 'N/A', 'avgPayReceived': 'N/A'}
+        })
+    return Response({'error': 'Invalid credentials'}, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_job(request):
+    try:
+        job = Job.objects.create(
+            posted_by=request.user,
+            title=request.data.get('title'),
+            description=request.data.get('description'),
+            category=request.data.get('category'),
+            rate=request.data.get('rate'),
+            location=request.data.get('location'),
+            date_needed=request.data.get('date_needed'),
         )
-        return JsonResponse(item.to_dict(), status=201)
+        return Response({'id': job.id, 'message': 'Job created successfully'}, status=201)
+    except Exception as ex:
+        return Response({'error': str(ex)}, status=400)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class ItemDetailView(View):
-    """
-    GET    /api/items/<id>/  - Retrieve an item
-    PUT    /api/items/<id>/  - Update an item
-    DELETE /api/items/<id>/  - Delete an item
-    """
+# GET /api/jobs/
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_jobs(request):
+    jobs = Job.objects.select_related('posted_by').order_by('-created_at')
+    data = [
+        {
+            'id':             job.id,
+            'title':          job.title,
+            'description':    job.description,
+            'category':       job.category,
+            'rate':           job.rate,
+            'location':       job.location,
+            'date_needed':    str(job.date_needed),
+            'status':         job.status,
+            'posted_by_id':   job.posted_by_id,
+            'posted_by_name': job.posted_by.first_name or job.posted_by.username,
+            'assigned_to_id': job.assigned_to_id,
+        }
+        for job in jobs
+    ]
+    return Response(data)
 
-    def get_object(self, pk):
-        try:
-            return Item.objects.get(pk=pk)
-        except Item.DoesNotExist:
-            return None
 
-    def get(self, request, pk):
-        item = self.get_object(pk)
-        if not item:
-            return json_error('Item not found', status=404)
-        return JsonResponse(item.to_dict())
+# POST /api/jobs/<id>/accept/
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accept_job(request, job_id):
+    if not hasattr(request.user, 'profile') or request.user.profile.role != 'worker':
+        return Response({'error': 'Only workers can accept jobs.'}, status=403)
 
-    def put(self, request, pk):
-        item = self.get_object(pk)
-        if not item:
-            return json_error('Item not found', status=404)
+    try:
+        job = Job.objects.get(id=job_id)
+    except Job.DoesNotExist:
+        return Response({'error': 'Job not found.'}, status=404)
 
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return json_error('Invalid JSON body')
+    if job.status != 'open':
+        return Response({'error': 'This job has already been taken.'}, status=400)
 
-        item.name = data.get('name', item.name)
-        item.description = data.get('description', item.description)
-        item.price = data.get('price', item.price)
-        item.save()
-        return JsonResponse(item.to_dict())
+    if job.posted_by == request.user:
+        return Response({'error': 'You cannot accept your own job.'}, status=400)
 
-    def delete(self, request, pk):
+    job.assigned_to = request.user
+    job.status = 'taken'
+    job.save()
+
+    return Response({'success': True, 'job_id': job.id})
         item = self.get_object(pk)
         if not item:
             return json_error('Item not found', status=404)

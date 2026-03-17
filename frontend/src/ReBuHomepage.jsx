@@ -1,5 +1,6 @@
 import { useState } from "react";
 import CreateJobRequest from "./CreateJobRequest";
+import JobBoard from "./JobBoard";
 
 // ============================================================
 // API INTEGRATION POINTS
@@ -27,10 +28,9 @@ const stats = [];
 // Expected shape: { jobsCompleted, qualityRating, avgPay, reviewCount, accountRating }
 // ============================================================
 const ProfileModal = ({ user, onClose }) => {
-  // Mock stats — swap these out when Django is connected
   const profileStats = {
     jobsCompleted: 0,
-    qualityRating: null,   // null renders as "N/A"
+    qualityRating: null,
     avgPay: null,
     reviewCount: 0,
     accountRating: null,
@@ -61,13 +61,10 @@ const ProfileModal = ({ user, onClose }) => {
           width: "100%", maxWidth: 400,
           background: "#0d1526",
           border: "1px solid rgba(56,189,248,0.12)",
-          borderRadius: 20,
-          padding: 28,
-          position: "relative",
+          borderRadius: 20, padding: 28, position: "relative",
           boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
         }}
       >
-        {/* Close */}
         <button onClick={onClose} style={{
           position: "absolute", top: 16, right: 16,
           width: 32, height: 32, borderRadius: "50%",
@@ -77,7 +74,6 @@ const ProfileModal = ({ user, onClose }) => {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>×</button>
 
-        {/* Avatar + Name */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
           <div style={{
             width: 64, height: 64, borderRadius: "50%",
@@ -103,7 +99,6 @@ const ProfileModal = ({ user, onClose }) => {
           </div>
         </div>
 
-        {/* Account Rating */}
         <div style={{
           padding: "16px 18px", borderRadius: 12,
           background: "#111827", border: "1px solid rgba(56,189,248,0.07)",
@@ -125,7 +120,6 @@ const ProfileModal = ({ user, onClose }) => {
           </div>
         </div>
 
-        {/* Worker Stats (only for workers) */}
         {isWorker && (
           <>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 12 }}>
@@ -160,7 +154,6 @@ const ProfileModal = ({ user, onClose }) => {
           </>
         )}
 
-        {/* Email */}
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "13px 16px", borderRadius: 10,
@@ -175,296 +168,355 @@ const ProfileModal = ({ user, onClose }) => {
   );
 };
 
+// ============================================================
+// SHARED HEADER
+// Extracted so it can be reused across all page views
+// ============================================================
+const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, onLogout, onProfileModalOpen }) => {
+  const navItems = ["Home", "Job Board", "Post a Job"];
+
+  return (
+    <header style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "0 40px", height: 64,
+      background: "linear-gradient(180deg, #0d1526 0%, #0a1220 100%)",
+      borderBottom: "1px solid rgba(56,189,248,0.08)",
+      position: "sticky", top: 0, zIndex: 100, backdropFilter: "blur(12px)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+        <div
+          onClick={() => onNavigate("home")}
+          style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", cursor: "pointer" }}
+        >
+          <span style={{ color: "#e2e8f0" }}>Re</span>
+          <span style={{ color: "#38bdf8" }}>Bu</span>
+        </div>
+
+        <nav style={{ display: "flex", gap: 4 }}>
+          {navItems.map(item => {
+            const isActive =
+              (item === "Home" && activePage === "home") ||
+              (item === "Job Board" && activePage === "jobBoard") ||
+              (item === "Post a Job" && activePage === "createJob");
+            return (
+              <button
+                key={item}
+                onClick={() => {
+                  if (item === "Post a Job") onNavigate("createJob");
+                  else if (item === "Job Board") onNavigate("jobBoard");
+                  else onNavigate("home");
+                }}
+                style={{
+                  padding: "8px 16px", borderRadius: 8, border: "none",
+                  background: isActive ? "rgba(56,189,248,0.1)" : "transparent",
+                  color: isActive ? "#38bdf8" : "#94a3b8",
+                  fontSize: 14, fontWeight: 500, cursor: "pointer",
+                  transition: "all 0.15s ease", fontFamily: "inherit",
+                }}
+                onMouseEnter={e => { if (!isActive) e.target.style.color = "#cbd5e1"; }}
+                onMouseLeave={e => { if (!isActive) e.target.style.color = "#94a3b8"; }}
+              >
+                {item}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Right side — profile dropdown */}
+      <div style={{ position: "relative" }}>
+        <button
+          onClick={() => onProfileOpen(!profileOpen)}
+          style={{
+            width: 36, height: 36, borderRadius: "50%",
+            border: profileOpen ? "2px solid #38bdf8" : "2px solid #1e293b",
+            background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+            color: "#94a3b8", fontSize: 14, fontWeight: 600, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.15s ease", fontFamily: "inherit",
+          }}
+        >
+          {user?.name?.[0]?.toUpperCase() || "U"}
+        </button>
+
+        {profileOpen && (
+          <div style={{
+            position: "absolute", top: 46, right: 0, width: 200,
+            background: "#111827", border: "1px solid rgba(56,189,248,0.1)",
+            borderRadius: 10, padding: 8,
+            boxShadow: "0 16px 48px rgba(0,0,0,0.4)",
+          }}>
+            {user && (
+              <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(56,189,248,0.08)", marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0" }}>{user.name}</div>
+                <div style={{ fontSize: 12, color: "#64748b" }}>{user.email}</div>
+              </div>
+            )}
+            {["My Profile", "My Jobs", "Ratings", "Settings"].map(item => (
+              <button
+                key={item}
+                onClick={() => {
+                  if (item === "My Profile") {
+                    onProfileModalOpen(true);
+                    onProfileOpen(false);
+                  }
+                }}
+                style={{
+                  display: "block", width: "100%", padding: "10px 14px",
+                  border: "none", background: "transparent", color: "#cbd5e1",
+                  fontSize: 13, textAlign: "left", borderRadius: 6,
+                  cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s ease",
+                }}
+                onMouseEnter={e => { e.target.style.background = "rgba(56,189,248,0.08)"; e.target.style.color = "#38bdf8"; }}
+                onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "#cbd5e1"; }}
+              >
+                {item}
+              </button>
+            ))}
+            {onLogout && (
+              <div style={{ borderTop: "1px solid rgba(56,189,248,0.08)", marginTop: 4, paddingTop: 4 }}>
+                <button
+                  onClick={onLogout}
+                  style={{
+                    display: "block", width: "100%", padding: "10px 14px",
+                    border: "none", background: "transparent", color: "#f87171",
+                    fontSize: 13, textAlign: "left", borderRadius: 6,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                  onMouseEnter={e => e.target.style.background = "rgba(239,68,68,0.08)"}
+                  onMouseLeave={e => e.target.style.background = "transparent"}
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
+
+// ============================================================
+// ROOT COMPONENT
+// ============================================================
 export default function ReBuHomepage({ user, onLogout }) {
   const [page, setPage] = useState("home");
-  const [activeNav, setActiveNav] = useState("Home");
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [hoveredJob, setHoveredJob] = useState(null);
 
-  const navItems = ["Home", "Job Board", "Post a Job"];
+  const navigate = (p) => {
+    setPage(p);
+    setProfileOpen(false);
+  };
 
+  const sharedHeaderProps = {
+    activePage: page,
+    user,
+    onNavigate: navigate,
+    onProfileOpen: setProfileOpen,
+    profileOpen,
+    onLogout,
+    onProfileModalOpen: setProfileModalOpen,
+  };
+
+  // ── Create Job page ──────────────────────────────────────────────────────
   if (page === "createJob") {
-    return <CreateJobRequest user={user} onBack={() => { setPage("home"); setActiveNav("Home"); }} />;
+    return (
+      <CreateJobRequest
+        user={user}
+        onBack={() => navigate("home")}
+      />
+    );
   }
 
+  // ── Job Board page ───────────────────────────────────────────────────────
+  if (page === "jobBoard") {
+    return (
+      <div style={{
+        minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      }}>
+        {profileModalOpen && (
+          <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />
+        )}
+        <AppHeader {...sharedHeaderProps} />
+        <JobBoard user={user} />
+      </div>
+    );
+  }
+
+  // ── Home page ────────────────────────────────────────────────────────────
   return (
     <div style={{
-      minHeight: "100vh",
-      background: "#0a0f1a",
-      color: "#e2e8f0",
+      minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     }}>
-      {/* Profile Modal */}
       {profileModalOpen && (
         <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />
       )}
 
-      {/* ===================== HEADER ===================== */}
-      <header style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 40px",
-        height: "64px",
-        background: "linear-gradient(180deg, #0d1526 0%, #0a1220 100%)",
-        borderBottom: "1px solid rgba(56, 189, 248, 0.08)",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-        backdropFilter: "blur(12px)",
-      }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
-          <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.5px", cursor: "pointer" }}>
-            <span style={{ color: "#e2e8f0" }}>Re</span>
-            <span style={{ color: "#38bdf8" }}>Bu</span>
-          </div>
+      <AppHeader {...sharedHeaderProps} />
 
-          {/* Nav Links */}
-          <nav style={{ display: "flex", gap: "4px" }}>
-            {navItems.map((item) => (
-              <button
-                key={item}
-                onClick={() => {
-                  if (item === "Post a Job") setPage("createJob");
-                  else setActiveNav(item);
-                }}
-                style={{
-                  padding: "8px 16px", borderRadius: "8px", border: "none",
-                  background: activeNav === item ? "rgba(56, 189, 248, 0.1)" : "transparent",
-                  color: activeNav === item ? "#38bdf8" : "#94a3b8",
-                  fontSize: "14px", fontWeight: 500, cursor: "pointer",
-                  transition: "all 0.15s ease", fontFamily: "inherit",
-                }}
-                onMouseEnter={(e) => { if (activeNav !== item) e.target.style.color = "#cbd5e1"; }}
-                onMouseLeave={(e) => { if (activeNav !== item) e.target.style.color = "#94a3b8"; }}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Right Side */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              style={{
-                width: "36px", height: "36px", borderRadius: "50%",
-                border: profileOpen ? "2px solid #38bdf8" : "2px solid #1e293b",
-                background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-                color: "#94a3b8", fontSize: "14px", fontWeight: 600, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 0.15s ease", fontFamily: "inherit",
-              }}
-            >
-              {user?.name?.[0]?.toUpperCase() || "U"}
-            </button>
-            {profileOpen && (
-              <div style={{
-                position: "absolute", top: "46px", right: 0, width: "200px",
-                background: "#111827", border: "1px solid rgba(56, 189, 248, 0.1)",
-                borderRadius: "10px", padding: "8px",
-                boxShadow: "0 16px 48px rgba(0,0,0,0.4)",
-              }}>
-                {user && (
-                  <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(56,189,248,0.08)", marginBottom: 4 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0" }}>{user.name}</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>{user.email}</div>
-                  </div>
-                )}
-                {["My Profile", "My Jobs", "Ratings", "Settings"].map((item) => (
-                  <button
-                    key={item}
-                    onClick={() => {
-                      if (item === "My Profile") {
-                        setProfileModalOpen(true);
-                        setProfileOpen(false);
-                      }
-                    }}
-                    style={{
-                      display: "block", width: "100%", padding: "10px 14px",
-                      border: "none", background: "transparent", color: "#cbd5e1",
-                      fontSize: "13px", textAlign: "left", borderRadius: "6px",
-                      cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s ease",
-                    }}
-                    onMouseEnter={(e) => { e.target.style.background = "rgba(56, 189, 248, 0.08)"; e.target.style.color = "#38bdf8"; }}
-                    onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.color = "#cbd5e1"; }}
-                  >
-                    {item}
-                  </button>
-                ))}
-                {onLogout && (
-                  <div style={{ borderTop: "1px solid rgba(56,189,248,0.08)", marginTop: 4, paddingTop: 4 }}>
-                    <button
-                      onClick={onLogout}
-                      style={{
-                        display: "block", width: "100%", padding: "10px 14px",
-                        border: "none", background: "transparent", color: "#f87171",
-                        fontSize: "13px", textAlign: "left", borderRadius: "6px",
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}
-                      onMouseEnter={(e) => e.target.style.background = "rgba(239,68,68,0.08)"}
-                      onMouseLeave={(e) => e.target.style.background = "transparent"}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* ===================== MAIN CONTENT ===================== */}
-      <main style={{ maxWidth: "1120px", margin: "0 auto", padding: "32px 40px" }}>
+      <main style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 40px" }}>
 
         {/* Welcome & Search */}
-        <div style={{ marginBottom: "32px" }}>
-          <h1 style={{ fontSize: "26px", fontWeight: 700, color: "#f1f5f9", margin: "0 0 4px 0" }}>
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: "#f1f5f9", margin: "0 0 4px" }}>
             Welcome back{user ? `, ${user.name}` : ""}
           </h1>
-          <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 20px 0" }}>
+          <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 20px" }}>
             Find help or pick up a job nearby
           </p>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div style={{ position: "relative", flex: 1, maxWidth: "480px" }}>
+            <div style={{ position: "relative", flex: 1, maxWidth: 480 }}>
               <input
                 type="text"
                 placeholder="Search for jobs, skills, or people..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 style={{
-                  width: "100%", padding: "12px 16px 12px 42px", borderRadius: "10px",
-                  border: "1px solid rgba(56, 189, 248, 0.12)", background: "#111827",
-                  color: "#e2e8f0", fontSize: "14px", outline: "none",
+                  width: "100%", padding: "12px 16px 12px 42px", borderRadius: 10,
+                  border: "1px solid rgba(56,189,248,0.12)", background: "#111827",
+                  color: "#e2e8f0", fontSize: 14, outline: "none",
                   fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.15s ease",
                 }}
-                onFocus={(e) => e.target.style.borderColor = "rgba(56, 189, 248, 0.35)"}
-                onBlur={(e) => e.target.style.borderColor = "rgba(56, 189, 248, 0.12)"}
+                onFocus={e => e.target.style.borderColor = "rgba(56,189,248,0.35)"}
+                onBlur={e => e.target.style.borderColor = "rgba(56,189,248,0.12)"}
               />
-              <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#475569", fontSize: "16px" }}>⌕</span>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#475569", fontSize: 16 }}>⌕</span>
             </div>
             <button
-              onClick={() => setPage("createJob")}
+              onClick={() => navigate("createJob")}
               style={{
-                padding: "12px 20px", borderRadius: "10px", border: "none",
+                padding: "12px 20px", borderRadius: 10, border: "none",
                 background: "linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)",
-                color: "#fff", fontSize: "14px", fontWeight: 600, cursor: "pointer",
+                color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
                 fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity 0.15s",
               }}
-              onMouseEnter={(e) => e.target.style.opacity = "0.9"}
-              onMouseLeave={(e) => e.target.style.opacity = "1"}
+              onMouseEnter={e => e.target.style.opacity = "0.9"}
+              onMouseLeave={e => e.target.style.opacity = "1"}
             >
               + Post a Job
             </button>
           </div>
         </div>
 
-        {/* ===================== STATS ROW ===================== */}
+        {/* Stats Row */}
         {stats.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "36px" }}>
-            {stats.map((stat) => (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 36 }}>
+            {stats.map(stat => (
               <div key={stat.label} style={{
-                padding: "20px", borderRadius: "12px",
+                padding: 20, borderRadius: 12,
                 background: "linear-gradient(135deg, #111827 0%, #0f172a 100%)",
-                border: "1px solid rgba(56, 189, 248, 0.06)",
+                border: "1px solid rgba(56,189,248,0.06)",
               }}>
-                <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>{stat.label}</div>
-                <div style={{ fontSize: "24px", fontWeight: 700, color: "#f1f5f9", marginBottom: "2px" }}>{stat.value}</div>
-                <div style={{ fontSize: "12px", color: "#38bdf8" }}>{stat.trend}</div>
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{stat.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>{stat.value}</div>
+                <div style={{ fontSize: 12, color: "#38bdf8" }}>{stat.trend}</div>
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ padding: "24px", borderRadius: "12px", background: "#111827", border: "1px solid rgba(56, 189, 248, 0.06)", textAlign: "center", color: "#475569", fontSize: "14px", marginBottom: "36px" }}>
+          <div style={{ padding: 24, borderRadius: 12, background: "#111827", border: "1px solid rgba(56,189,248,0.06)", textAlign: "center", color: "#475569", fontSize: 14, marginBottom: 36 }}>
             Stats will appear here once connected to the backend.
           </div>
         )}
 
-        {/* ===================== JOB CATEGORIES ===================== */}
-        <div style={{ marginBottom: "36px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h2 style={{ fontSize: "17px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>Browse Categories</h2>
-            <button style={{ background: "none", border: "none", color: "#38bdf8", fontSize: "13px", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>View all →</button>
+        {/* Job Categories */}
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: "#f1f5f9", margin: 0 }}>Browse Categories</h2>
+            <button
+              onClick={() => navigate("jobBoard")}
+              style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
+            >
+              View all →
+            </button>
           </div>
           {jobCategories.length > 0 ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
-              {jobCategories.map((cat) => (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              {jobCategories.map(cat => (
                 <div
                   key={cat.id}
                   onMouseEnter={() => setHoveredCategory(cat.id)}
                   onMouseLeave={() => setHoveredCategory(null)}
+                  onClick={() => navigate("jobBoard")}
                   style={{
-                    padding: "18px 20px", borderRadius: "12px",
-                    background: hoveredCategory === cat.id ? "rgba(56, 189, 248, 0.05)" : "#111827",
-                    border: hoveredCategory === cat.id ? "1px solid rgba(56, 189, 248, 0.15)" : "1px solid rgba(56, 189, 248, 0.04)",
+                    padding: "18px 20px", borderRadius: 12,
+                    background: hoveredCategory === cat.id ? "rgba(56,189,248,0.05)" : "#111827",
+                    border: hoveredCategory === cat.id ? "1px solid rgba(56,189,248,0.15)" : "1px solid rgba(56,189,248,0.04)",
                     cursor: "pointer", transition: "all 0.15s ease",
-                    display: "flex", alignItems: "center", gap: "14px",
+                    display: "flex", alignItems: "center", gap: 14,
                   }}
                 >
-                  <span style={{ fontSize: "28px" }}>{cat.icon}</span>
+                  <span style={{ fontSize: 28 }}>{cat.icon}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", marginBottom: "2px" }}>{cat.name}</div>
-                    <div style={{ fontSize: "12px", color: "#64748b" }}>{cat.desc}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0", marginBottom: 2 }}>{cat.name}</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>{cat.desc}</div>
                   </div>
-                  <div style={{ padding: "4px 10px", borderRadius: "20px", background: "rgba(56, 189, 248, 0.08)", color: "#38bdf8", fontSize: "12px", fontWeight: 600 }}>{cat.count}</div>
+                  <div style={{ padding: "4px 10px", borderRadius: 20, background: "rgba(56,189,248,0.08)", color: "#38bdf8", fontSize: 12, fontWeight: 600 }}>{cat.count}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ padding: "40px 24px", borderRadius: "12px", background: "#111827", border: "1px solid rgba(56, 189, 248, 0.06)", textAlign: "center", color: "#475569", fontSize: "14px" }}>
+            <div style={{ padding: "40px 24px", borderRadius: 12, background: "#111827", border: "1px solid rgba(56,189,248,0.06)", textAlign: "center", color: "#475569", fontSize: 14 }}>
               Job categories will appear here once connected to the backend.
             </div>
           )}
         </div>
 
-        {/* ===================== RECENT JOBS ===================== */}
+        {/* Recent Jobs */}
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h2 style={{ fontSize: "17px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>Recent Jobs Near You</h2>
-            <button style={{ background: "none", border: "none", color: "#38bdf8", fontSize: "13px", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>See all jobs →</button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: "#f1f5f9", margin: 0 }}>Recent Jobs Near You</h2>
+            <button
+              onClick={() => navigate("jobBoard")}
+              style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
+            >
+              See all jobs →
+            </button>
           </div>
           {recentJobs.length > 0 ? (
-            <div style={{ borderRadius: "12px", border: "1px solid rgba(56, 189, 248, 0.06)", overflow: "hidden" }}>
+            <div style={{ borderRadius: 12, border: "1px solid rgba(56,189,248,0.06)", overflow: "hidden" }}>
               {recentJobs.map((job, i) => (
                 <div
                   key={job.id}
                   onMouseEnter={() => setHoveredJob(job.id)}
                   onMouseLeave={() => setHoveredJob(null)}
+                  onClick={() => navigate("jobBoard")}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px",
-                    background: hoveredJob === job.id ? "rgba(56, 189, 248, 0.03)" : i % 2 === 0 ? "#0d1321" : "#111827",
-                    borderBottom: i < recentJobs.length - 1 ? "1px solid rgba(56, 189, 248, 0.04)" : "none",
+                    background: hoveredJob === job.id ? "rgba(56,189,248,0.03)" : i % 2 === 0 ? "#0d1321" : "#111827",
+                    borderBottom: i < recentJobs.length - 1 ? "1px solid rgba(56,189,248,0.04)" : "none",
                     cursor: "pointer", transition: "all 0.1s ease",
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
-                      <span style={{ fontSize: "14px", fontWeight: 500, color: "#e2e8f0" }}>{job.title}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: "#e2e8f0" }}>{job.title}</span>
                       {job.urgency && (
-                        <span style={{ padding: "2px 8px", borderRadius: "4px", background: "rgba(239, 68, 68, 0.12)", color: "#f87171", fontSize: "11px", fontWeight: 600 }}>{job.urgency}</span>
+                        <span style={{ padding: "2px 8px", borderRadius: 4, background: "rgba(239,68,68,0.12)", color: "#f87171", fontSize: 11, fontWeight: 600 }}>{job.urgency}</span>
                       )}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>
                       {job.category} · Posted by {job.postedBy} · {job.time}
                     </div>
                   </div>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: "#34d399", whiteSpace: "nowrap" }}>{job.budget}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#34d399", whiteSpace: "nowrap" }}>{job.budget}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ padding: "40px 24px", borderRadius: "12px", background: "#111827", border: "1px solid rgba(56, 189, 248, 0.06)", textAlign: "center", color: "#475569", fontSize: "14px" }}>
+            <div style={{ padding: "40px 24px", borderRadius: 12, background: "#111827", border: "1px solid rgba(56,189,248,0.06)", textAlign: "center", color: "#475569", fontSize: 14 }}>
               Recent jobs will appear here once connected to the backend.
             </div>
           )}
         </div>
+
       </main>
     </div>
   );
