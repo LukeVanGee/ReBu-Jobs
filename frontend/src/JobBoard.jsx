@@ -44,11 +44,17 @@ const AcceptModal = ({ job, user, onClose, onSuccess }) => {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${user?.token}`,
+          "X-User-Name": user?.name || "",
+          "X-User-Email": user?.email || "",
+          "X-User-Role": user?.role || "", // added if backend is tracking who accepted, needs worker info
         },
       });
       const data = await res.json();
-      if (res.ok) onSuccess(job.id);
-      else setErr(data.error || "Something went wrong.");
+      if (res.ok) {
+  onSuccess(data.job || { ...job, status: "accepted" }); // frontend should update the whole job record when accepted
+} else {
+  setErr(data.error || "Something went wrong.");
+}
     } catch {
       setErr("Could not reach the server.");
     }
@@ -149,7 +155,8 @@ export default function JobBoard({ user }) {
 
   const [hoveredJob, setHoveredJob] = useState(null);
   const [acceptTarget, setAcceptTarget] = useState(null); // job being confirmed
-  const [acceptedIds, setAcceptedIds] = useState(new Set()); // optimistic UI
+  const [actionError, setActionError] = useState(null);
+  const [completingId, setCompletingId] = useState(null); // removes old acceptedIds approach and gives state for errors
 
   const isWorker = user?.role === "worker";
 
@@ -191,11 +198,71 @@ export default function JobBoard({ user }) {
       return b.id - a.id;
     });
 
-  const handleAcceptSuccess = (id) => {
-    setAcceptedIds(prev => new Set([...prev, id]));
-    setAcceptTarget(null);
-  };
+const handleAcceptSuccess = (updatedJob) => {
+  setJobs((prevJobs) =>
+    prevJobs.map((job) => {
+      if (job.id === updatedJob.id) {
+        return {
+          ...job,
+          ...updatedJob,
+          status: updatedJob.status || "accepted",
+          assigned_worker_name:
+            updatedJob.assigned_worker_name || user?.name || "",
+          assigned_worker_email:
+            updatedJob.assigned_worker_email || user?.email || "", // turns "accepted" into a real udpate on job card instead of only tracking id in a set
+        };
+      }
 
+      return job;
+    })
+  );
+
+  setAcceptTarget(null);
+  setActionError(null);
+};
+
+const handleCompleteJob = async (jobId) => { // new fe feature for completing jobs
+  setCompletingId(jobId);
+  setActionError(null);
+
+  try {
+    const res = await fetch(`${API_URL}/jobs/${jobId}/complete/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user?.token}`,
+        "X-User-Name": user?.name || "",
+        "X-User-Email": user?.email || "",
+        "X-User-Role": user?.role || "",
+      },
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setJobs((prevJobs) =>
+        prevJobs.map((job) => {
+          if (job.id === jobId) {
+            return {
+              ...job,
+              ...data.job,
+              status: data.job?.status || "completed",
+            };
+          }
+
+          return job;
+        })
+      );
+    } else {
+      setActionError(data.error || "Could not complete the job.");
+    }
+  } catch {
+    setActionError("Could not reach the server.");
+  }
+
+  setCompletingId(null);
+};
+  
   // ── render ─────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 40px" }}>
@@ -310,7 +377,7 @@ export default function JobBoard({ user }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {visible.map(job => {
             const isOwn     = job.posted_by_id === user?.id || job.posted_by === user?.email;
-            const accepted  = acceptedIds.has(job.id);
+            const isAssignedWorker = job.assigned_worker_email === user?.email; // stopped using accepted ids
             const days      = daysUntil(job.date_needed);
             const urgent    = days != null && days <= URGENCY_DAYS && days >= 0;
 
@@ -323,20 +390,26 @@ export default function JobBoard({ user }) {
               >
                 {/* Top row */}
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9" }}>{job.title}</span>
-                    {urgent && (
-                      <span style={pill("rgba(239,68,68,0.12)", "#f87171")}>URGENT</span>
-                    )}
-                    {isOwn && (
-                      <span style={pill("rgba(56,189,248,0.1)", "#38bdf8")}>Mine</span>
-                    )}
-                    {accepted && (
-                      <span style={pill("rgba(52,211,153,0.12)", "#34d399")}>✓ Accepted</span>
-                    )}
-                    {job.status === "taken" && !accepted && (
-                      <span style={pill("rgba(148,163,184,0.1)", "#64748b")}>Taken</span>
-                    )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}> 
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9" }}>{job.title}</span>
+                {urgent && (
+                  <span style={pill("rgba(239,68,68,0.12)", "#f87171")}>URGENT</span>
+                )}
+                {isOwn && (
+                  <span style={pill("rgba(56,189,248,0.1)", "#38bdf8")}>Mine</span>
+                )}
+                {job.status === "available" && (
+                  <span style={pill("rgba(52,211,153,0.12)", "#34d399")}>Available</span>
+                )}
+                {job.status === "accepted" && (
+                  <span style={pill("rgba(56,189,248,0.12)", "#38bdf8")}>Accepted</span>
+                )}
+                {job.status === "completed" && (
+                  <span style={pill("rgba(168,85,247,0.12)", "#c084fc")}>Completed</span>
+                )}
+                {job.status === "taken" && (
+                  <span style={pill("rgba(56,189,248,0.12)", "#38bdf8")}>Accepted</span>
+                )}
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 700, color: "#34d399", whiteSpace: "nowrap" }}>
                     {job.rate != null ? `$${job.rate}` : "Negotiable"}
@@ -366,14 +439,22 @@ export default function JobBoard({ user }) {
                     </span>
                   ))}
                   {job.posted_by_name && (
-                    <span style={{ fontSize: 12, color: "#475569", marginLeft: "auto" }}>
-                      Posted by {job.posted_by_name}
-                    </span>
-                  )}
+                  <span style={{ fontSize: 12, color: "#475569", marginLeft: "auto" }}>
+                    Posted by {job.posted_by_name}
+                  </span>
+                )}
+                
+                {job.assigned_worker_name && (
+                  <span style={{ fontSize: 12, color: "#475569" }}>
+                    Assigned to {job.assigned_worker_name}
+                  </span>
+                )}
                 </div>
 
                 {/* Action: workers only, open jobs */}
-                {isWorker && !isOwn && job.status !== "taken" && !accepted && (
+                {isWorker &&
+                !isOwn &&
+                (job.status === "available" || !job.status) && ( //removes dependence on deleted accepte dvariable and makes accept show for available jobs 
                   <div style={{ display: "flex", justifyContent: "flex-end" }}>
                     <button
                       onClick={e => { e.stopPropagation(); setAcceptTarget(job); }}
@@ -388,6 +469,30 @@ export default function JobBoard({ user }) {
                     </button>
                   </div>
                 )}
+
+{isWorker &&
+  isAssignedWorker &&
+  (job.status === "accepted" || job.status === "taken") && (
+    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <button
+        onClick={e => { e.stopPropagation(); handleCompleteJob(job.id); }}
+        style={{
+          padding: "8px 18px",
+          borderRadius: 8,
+          border: "none",
+          background: "linear-gradient(135deg, #22c55e, #16a34a)",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        {completingId === job.id ? "Completing..." : "Complete Job"}
+      </button>
+    </div>
+)}
+                
               </div>
             );
           })}
