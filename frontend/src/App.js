@@ -1,24 +1,39 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+//import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+//import LoginPage from "./LoginPage";
+//import ReBuHomepage from "./ReBuHomepage";
+
+//function App() {
+  //return (
+    //<BrowserRouter>
+      //<Routes>
+        //<Route path="/" element={<Navigate to="/login" />} />
+        //<Route path="/login" element={<LoginPage />} />
+        //<Route path="/home" element={<ReBuHomepage />} />
+      //</Routes>
+//    </BrowserRouter>
+ // );
+//}
+
+//export default App;
+import { useState } from "react";
+import { BrowserRouter } from "react-router-dom";
 import LoginPage from "./LoginPage";
 import ReBuHomepage from "./ReBuHomepage";
-import JobBoard from "./JobBoard";
-import JobDetails from "./JobDetails";
-import PostJob from "./pages/PostJob";
 
-function App() {
+export default function App() {
+  const [user, setUser] = useState(null);
+
+  if (!user) {
+    return (
+      <BrowserRouter>
+        <LoginPage onLoginSuccess={setUser} />
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/home" element={<ReBuHomepage />} />
-        <Route path="/job-board" element={<JobBoard />} />
-        <Route path="/post-job" element={<PostJob />} />
-        <Route path="/job/:id" element={<JobDetails />} />
-        <Route path="*" element={<Navigate to="/home" replace />} />
-      </Routes>
+      <ReBuHomepage user={user} onLogout={() => setUser(null)} />
     </BrowserRouter>
   );
 }
-
-export default App;
