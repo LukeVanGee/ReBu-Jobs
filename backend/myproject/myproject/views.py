@@ -1,4 +1,4 @@
-importfrom django.shortcuts import render
+from django.shortcuts import render
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -120,8 +120,3 @@ def accept_job(request, job_id):
     job.save()
 
     return Response({'success': True, 'job_id': job.id})
-        item = self.get_object(pk)
-        if not item:
-            return json_error('Item not found', status=404)
-        item.delete()
-        return JsonResponse({'message': f'Item {pk} deleted successfully'})
