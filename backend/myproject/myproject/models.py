@@ -4,6 +4,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 #Imports Woo
 
+#Profile Class that is attached to any account, it containss th users role (customer or worker)
+#As well as their rating average and number of reviews
+
+
 class Profile(models.Model):
     ROLE_CHOICES = [('customer', 'Customer'), ('worker', 'Worker')]
     user = models.OneToOneField(User, on_delete=models.CASCADE)
