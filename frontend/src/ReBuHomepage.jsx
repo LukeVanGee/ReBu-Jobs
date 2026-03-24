@@ -326,21 +326,20 @@ export default function ReBuHomepage({ user, onLogout }) {
       <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
         {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
         <AppHeader {...sharedHeaderProps} />
-        <JobBoard user={user} />
+        <JobBoard user={user} onNavigate={navigate} />
       </div>
     );
   }
 
-  // ← added My Jobs page
   if (page === "myJobs") {
-  return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
-      <AppHeader {...sharedHeaderProps} />
-      <MyJobs user={user} onNavigate={navigate} />  {/* ← add onNavigate */}
-    </div>
-  );
-}
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+        {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
+        <AppHeader {...sharedHeaderProps} />
+        <MyJobs user={user} onNavigate={navigate} />
+      </div>
+    );
+  }
 
   // ── Home page ────────────────────────────────────────────────────────────
   return (
