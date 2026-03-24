@@ -1,14 +1,12 @@
 import { useState } from "react";
 import CreateJobRequest from "./CreateJobRequest";
 import JobBoard from "./JobBoard";
+import MyJobs from "./MyJobs";   // ← added
+
 
 // ============================================================
 // API INTEGRATION POINTS
-// Replace these empty arrays with actual API calls to your
-// Django backend / Supabase. Each section notes what shape
-// the data should take.
 // ============================================================
-
 // GET /api/categories
 // { id: number, name: string, icon: string, count: number, desc: string }
 const jobCategories = [];
@@ -22,10 +20,10 @@ const recentJobs = [];
 // { label: string, value: string, trend: string }
 const stats = [];
 
+
 // ============================================================
 // PROFILE MODAL
 // TODO: Replace mock stats with GET /api/profile/:userId
-// Expected shape: { jobsCompleted, qualityRating, avgPay, reviewCount, accountRating }
 // ============================================================
 const ProfileModal = ({ user, onClose }) => {
   const profileStats = {
@@ -168,12 +166,12 @@ const ProfileModal = ({ user, onClose }) => {
   );
 };
 
+
 // ============================================================
 // SHARED HEADER
-// Extracted so it can be reused across all page views
 // ============================================================
 const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, onLogout, onProfileModalOpen }) => {
-  const navItems = ["Home", "Job Board", "Post a Job"];
+  const navItems = ["Home", "Job Board", "Post a Job", "My Jobs"];  // ← added "My Jobs"
 
   return (
     <header style={{
@@ -195,15 +193,17 @@ const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, o
         <nav style={{ display: "flex", gap: 4 }}>
           {navItems.map(item => {
             const isActive =
-              (item === "Home" && activePage === "home") ||
-              (item === "Job Board" && activePage === "jobBoard") ||
-              (item === "Post a Job" && activePage === "createJob");
+              (item === "Home"       && activePage === "home") ||
+              (item === "Job Board"  && activePage === "jobBoard") ||
+              (item === "Post a Job" && activePage === "createJob") ||
+              (item === "My Jobs"    && activePage === "myJobs");  // ← added
             return (
               <button
                 key={item}
                 onClick={() => {
                   if (item === "Post a Job") onNavigate("createJob");
                   else if (item === "Job Board") onNavigate("jobBoard");
+                  else if (item === "My Jobs") onNavigate("myJobs");  // ← added
                   else onNavigate("home");
                 }}
                 style={{
@@ -256,10 +256,8 @@ const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, o
               <button
                 key={item}
                 onClick={() => {
-                  if (item === "My Profile") {
-                    onProfileModalOpen(true);
-                    onProfileOpen(false);
-                  }
+                  if (item === "My Profile") { onProfileModalOpen(true); onProfileOpen(false); }
+                  if (item === "My Jobs") { onNavigate("myJobs"); onProfileOpen(false); }  // ← added
                 }}
                 style={{
                   display: "block", width: "100%", padding: "10px 14px",
@@ -297,6 +295,7 @@ const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, o
   );
 };
 
+
 // ============================================================
 // ROOT COMPONENT
 // ============================================================
@@ -308,57 +307,45 @@ export default function ReBuHomepage({ user, onLogout }) {
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [hoveredJob, setHoveredJob] = useState(null);
 
-  const navigate = (p) => {
-    setPage(p);
-    setProfileOpen(false);
-  };
+  const navigate = (p) => { setPage(p); setProfileOpen(false); };
 
   const sharedHeaderProps = {
-    activePage: page,
-    user,
+    activePage: page, user,
     onNavigate: navigate,
     onProfileOpen: setProfileOpen,
-    profileOpen,
-    onLogout,
+    profileOpen, onLogout,
     onProfileModalOpen: setProfileModalOpen,
   };
 
-  // ── Create Job page ──────────────────────────────────────────────────────
   if (page === "createJob") {
-    return (
-      <CreateJobRequest
-        user={user}
-        onBack={() => navigate("home")}
-      />
-    );
+    return <CreateJobRequest user={user} onBack={() => navigate("home")} />;
   }
 
-  // ── Job Board page ───────────────────────────────────────────────────────
   if (page === "jobBoard") {
     return (
-      <div style={{
-        minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0",
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}>
-        {profileModalOpen && (
-          <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />
-        )}
+      <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+        {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
         <AppHeader {...sharedHeaderProps} />
         <JobBoard user={user} />
       </div>
     );
   }
 
+  // ← added My Jobs page
+  if (page === "myJobs") {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
+      <AppHeader {...sharedHeaderProps} />
+      <MyJobs user={user} onNavigate={navigate} />  {/* ← add onNavigate */}
+    </div>
+  );
+}
+
   // ── Home page ────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0",
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    }}>
-      {profileModalOpen && (
-        <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />
-      )}
-
+    <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
       <AppHeader {...sharedHeaderProps} />
 
       <main style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 40px" }}>
@@ -409,11 +396,7 @@ export default function ReBuHomepage({ user, onLogout }) {
         {stats.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 36 }}>
             {stats.map(stat => (
-              <div key={stat.label} style={{
-                padding: 20, borderRadius: 12,
-                background: "linear-gradient(135deg, #111827 0%, #0f172a 100%)",
-                border: "1px solid rgba(56,189,248,0.06)",
-              }}>
+              <div key={stat.label} style={{ padding: 20, borderRadius: 12, background: "linear-gradient(135deg, #111827 0%, #0f172a 100%)", border: "1px solid rgba(56,189,248,0.06)" }}>
                 <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{stat.label}</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>{stat.value}</div>
                 <div style={{ fontSize: 12, color: "#38bdf8" }}>{stat.trend}</div>
@@ -430,29 +413,12 @@ export default function ReBuHomepage({ user, onLogout }) {
         <div style={{ marginBottom: 36 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h2 style={{ fontSize: 17, fontWeight: 600, color: "#f1f5f9", margin: 0 }}>Browse Categories</h2>
-            <button
-              onClick={() => navigate("jobBoard")}
-              style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
-            >
-              View all →
-            </button>
+            <button onClick={() => navigate("jobBoard")} style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>View all →</button>
           </div>
           {jobCategories.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
               {jobCategories.map(cat => (
-                <div
-                  key={cat.id}
-                  onMouseEnter={() => setHoveredCategory(cat.id)}
-                  onMouseLeave={() => setHoveredCategory(null)}
-                  onClick={() => navigate("jobBoard")}
-                  style={{
-                    padding: "18px 20px", borderRadius: 12,
-                    background: hoveredCategory === cat.id ? "rgba(56,189,248,0.05)" : "#111827",
-                    border: hoveredCategory === cat.id ? "1px solid rgba(56,189,248,0.15)" : "1px solid rgba(56,189,248,0.04)",
-                    cursor: "pointer", transition: "all 0.15s ease",
-                    display: "flex", alignItems: "center", gap: 14,
-                  }}
-                >
+                <div key={cat.id} onMouseEnter={() => setHoveredCategory(cat.id)} onMouseLeave={() => setHoveredCategory(null)} onClick={() => navigate("jobBoard")} style={{ padding: "18px 20px", borderRadius: 12, background: hoveredCategory === cat.id ? "rgba(56,189,248,0.05)" : "#111827", border: hoveredCategory === cat.id ? "1px solid rgba(56,189,248,0.15)" : "1px solid rgba(56,189,248,0.04)", cursor: "pointer", transition: "all 0.15s ease", display: "flex", alignItems: "center", gap: 14 }}>
                   <span style={{ fontSize: 28 }}>{cat.icon}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0", marginBottom: 2 }}>{cat.name}</div>
@@ -473,28 +439,12 @@ export default function ReBuHomepage({ user, onLogout }) {
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h2 style={{ fontSize: 17, fontWeight: 600, color: "#f1f5f9", margin: 0 }}>Recent Jobs Near You</h2>
-            <button
-              onClick={() => navigate("jobBoard")}
-              style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
-            >
-              See all jobs →
-            </button>
+            <button onClick={() => navigate("jobBoard")} style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>See all jobs →</button>
           </div>
           {recentJobs.length > 0 ? (
             <div style={{ borderRadius: 12, border: "1px solid rgba(56,189,248,0.06)", overflow: "hidden" }}>
               {recentJobs.map((job, i) => (
-                <div
-                  key={job.id}
-                  onMouseEnter={() => setHoveredJob(job.id)}
-                  onMouseLeave={() => setHoveredJob(null)}
-                  onClick={() => navigate("jobBoard")}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px",
-                    background: hoveredJob === job.id ? "rgba(56,189,248,0.03)" : i % 2 === 0 ? "#0d1321" : "#111827",
-                    borderBottom: i < recentJobs.length - 1 ? "1px solid rgba(56,189,248,0.04)" : "none",
-                    cursor: "pointer", transition: "all 0.1s ease",
-                  }}
-                >
+                <div key={job.id} onMouseEnter={() => setHoveredJob(job.id)} onMouseLeave={() => setHoveredJob(null)} onClick={() => navigate("jobBoard")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: hoveredJob === job.id ? "rgba(56,189,248,0.03)" : i % 2 === 0 ? "#0d1321" : "#111827", borderBottom: i < recentJobs.length - 1 ? "1px solid rgba(56,189,248,0.04)" : "none", cursor: "pointer", transition: "all 0.1s ease" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                       <span style={{ fontSize: 14, fontWeight: 500, color: "#e2e8f0" }}>{job.title}</span>
@@ -502,9 +452,7 @@ export default function ReBuHomepage({ user, onLogout }) {
                         <span style={{ padding: "2px 8px", borderRadius: 4, background: "rgba(239,68,68,0.12)", color: "#f87171", fontSize: 11, fontWeight: 600 }}>{job.urgency}</span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>
-                      {job.category} · Posted by {job.postedBy} · {job.time}
-                    </div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>{job.category} · Posted by {job.postedBy} · {job.time}</div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#34d399", whiteSpace: "nowrap" }}>{job.budget}</div>
                 </div>
