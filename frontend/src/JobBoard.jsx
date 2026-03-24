@@ -10,7 +10,7 @@ const statusColors = {
 };
 const statusLabels = { open: "Open", taken: "Taken" };
 
-export default function JobBoard({ user }) {
+export default function JobBoard({ user, onNavigate }) {
   const [role, setRole]                     = useState("client");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery]       = useState("");
@@ -166,7 +166,7 @@ export default function JobBoard({ user }) {
                           </button>
                         )}
                         {job.status === "taken" && (
-                          <button onClick={e => { e.stopPropagation(); navigate("/my-jobs"); }} style={{ padding: "8px 18px", borderRadius: "8px", border: "1px solid rgba(251,191,36,0.2)", background: "transparent", color: "#fbbf24", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                          <button onClick={e => { e.stopPropagation(); onNavigate("myJobs"); }} style={{ padding: "8px 18px", borderRadius: "8px", border: "1px solid rgba(251,191,36,0.2)", background: "transparent", color: "#fbbf24", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                             View in My Jobs →
                           </button>
                         )}
