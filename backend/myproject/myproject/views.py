@@ -24,6 +24,7 @@ def signup(request):
 
     refresh = RefreshToken.for_user(user)
     return Response({
+        'id': user.id,
         'token': str(refresh.access_token),
         'name': name,
         'role': role,
@@ -44,6 +45,7 @@ def login(request):
     if user:
         refresh = RefreshToken.for_user(user)
         return Response({
+            'id': user.id,
             'token': str(refresh.access_token),
             'name': user.first_name,
             'role': user.profile.role,
@@ -120,3 +122,27 @@ def accept_job(request, job_id):
     job.save()
 
     return Response({'success': True, 'job_id': job.id})
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def complete_job(request, job_id):
+    job = Job.objects.get(id=job_id, assigned_to=request.user)
+    job.status = 'done'   # also add 'done' to STATUS_CHOICES in models.py
+    job.save()
+    return Response({'success': True})
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def drop_job(request, job_id):
+    job = Job.objects.get(id=job_id, assigned_to=request.user)
+    job.assigned_to = None
+    job.status = 'open'
+    job.save()
+    return Response({'success': True})
+
+# GET /api/jobs/mine/ — optional optimization to avoid client-side filtering
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_jobs(request):
+    jobs = Job.objects.filter(assigned_to=request.user).select_related('posted_by')
+    # serialize same shape as list_jobs
+    ...
