@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
+from .models import Conversation, Message
 from .models import Job
 
 
@@ -146,3 +148,115 @@ def my_jobs(request):
     jobs = Job.objects.filter(assigned_to=request.user).select_related('posted_by')
     # serialize same shape as list_jobs
     ...
+
+# ──────────────────────────────────────────────
+# Add these views to the BOTTOM of myproject/views.py
+# Make sure these imports are at the top of the file
+# (skip any you already have):
+#
+#   from django.db.models import Q
+#   from .models import Conversation, Message
+# ──────────────────────────────────────────────
+
+
+# GET /api/conversations/
+# Returns all conversations for the logged-in user, sorted by most recent message
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_conversations(request):
+    convos = Conversation.objects.filter(
+        Q(user_one=request.user) | Q(user_two=request.user)
+    ).select_related('user_one', 'user_two')
+
+    data = []
+    for c in convos:
+        # figure out who the "other" person is
+        other = c.user_two if c.user_one == request.user else c.user_one
+        # grab the last message for preview text
+        last_msg = c.messages.order_by('-created_at').first()
+        data.append({
+            'id':               c.id,
+            'other_user_id':    other.id,
+            'other_user_name':  other.first_name or other.username,
+            'last_message':     last_msg.text if last_msg else '',
+            'last_message_at':  str(last_msg.created_at) if last_msg else str(c.created_at),
+            'updated_at':       str(c.updated_at),
+        })
+    return Response(data)
+
+
+# POST /api/conversations/start/
+# Body: { "user_id": <int> }
+# Gets or creates a conversation with the given user. Returns the conversation id.
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def start_conversation(request):
+    other_id = request.data.get('user_id')
+    if not other_id:
+        return Response({'error': 'user_id is required'}, status=400)
+
+    try:
+        other_user = User.objects.get(id=other_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+
+    if other_user == request.user:
+        return Response({'error': 'Cannot message yourself'}, status=400)
+
+    # always store the lower id as user_one for consistent uniqueness
+    u1, u2 = (request.user, other_user) if request.user.id < other_user.id else (other_user, request.user)
+
+    convo, created = Conversation.objects.get_or_create(user_one=u1, user_two=u2)
+    return Response({
+        'id':              convo.id,
+        'other_user_id':   other_user.id,
+        'other_user_name': other_user.first_name or other_user.username,
+        'created':         created,
+    }, status=201 if created else 200)
+
+
+# GET  /api/conversations/<id>/messages/         — fetch messages
+# POST /api/conversations/<id>/messages/         — send a message
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def conversation_messages(request, convo_id):
+    try:
+        convo = Conversation.objects.get(
+            Q(id=convo_id),
+            Q(user_one=request.user) | Q(user_two=request.user)
+        )
+    except Conversation.DoesNotExist:
+        return Response({'error': 'Conversation not found'}, status=404)
+
+    # ── GET: return all messages ──
+    if request.method == 'GET':
+        msgs = convo.messages.select_related('sender').all()
+        data = [
+            {
+                'id':         m.id,
+                'sender_id':  m.sender_id,
+                'sender_name': m.sender.first_name or m.sender.username,
+                'text':       m.text,
+                'created_at': str(m.created_at),
+            }
+            for m in msgs
+        ]
+        return Response(data)
+
+    # ── POST: send a new message ──
+    text = request.data.get('text', '').strip()
+    if not text:
+        return Response({'error': 'Message text is required'}, status=400)
+
+    msg = Message.objects.create(conversation=convo, sender=request.user, text=text)
+
+    # bump the conversation's updated_at
+    convo.save()  # auto_now on updated_at handles this
+
+    return Response({
+        'id':         msg.id,
+        'sender_id':  msg.sender_id,
+        'sender_name': msg.sender.first_name or msg.sender.username,
+        'text':       msg.text,
+        'created_at': str(msg.created_at),
+    }, status=201)

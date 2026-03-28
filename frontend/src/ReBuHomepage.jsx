@@ -1,7 +1,8 @@
 import { useState } from "react";
 import CreateJobRequest from "./CreateJobRequest";
 import JobBoard from "./JobBoard";
-import MyJobs from "./MyJobs";   // ← added
+import MyJobs from "./MyJobs";
+import Messages from "./Messages";
 
 
 // ============================================================
@@ -171,7 +172,7 @@ const ProfileModal = ({ user, onClose }) => {
 // SHARED HEADER
 // ============================================================
 const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, onLogout, onProfileModalOpen }) => {
-  const navItems = ["Home", "Job Board", "Post a Job", "My Jobs"];  // ← added "My Jobs"
+  const navItems = ["Home", "Job Board", "Post a Job", "My Jobs", "Messages"];
 
   return (
     <header style={{
@@ -196,14 +197,16 @@ const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, o
               (item === "Home"       && activePage === "home") ||
               (item === "Job Board"  && activePage === "jobBoard") ||
               (item === "Post a Job" && activePage === "createJob") ||
-              (item === "My Jobs"    && activePage === "myJobs");  // ← added
+              (item === "My Jobs"    && activePage === "myJobs") ||
+              (item === "Messages"   && activePage === "messages");
             return (
               <button
                 key={item}
                 onClick={() => {
                   if (item === "Post a Job") onNavigate("createJob");
                   else if (item === "Job Board") onNavigate("jobBoard");
-                  else if (item === "My Jobs") onNavigate("myJobs");  // ← added
+                  else if (item === "My Jobs") onNavigate("myJobs");
+                  else if (item === "Messages") onNavigate("messages");
                   else onNavigate("home");
                 }}
                 style={{
@@ -252,12 +255,13 @@ const AppHeader = ({ activePage, user, onNavigate, onProfileOpen, profileOpen, o
                 <div style={{ fontSize: 12, color: "#64748b" }}>{user.email}</div>
               </div>
             )}
-            {["My Profile", "My Jobs", "Ratings", "Settings"].map(item => (
+            {["My Profile", "My Jobs", "Messages", "Ratings", "Settings"].map(item => (
               <button
                 key={item}
                 onClick={() => {
                   if (item === "My Profile") { onProfileModalOpen(true); onProfileOpen(false); }
-                  if (item === "My Jobs") { onNavigate("myJobs"); onProfileOpen(false); }  // ← added
+                  if (item === "My Jobs") { onNavigate("myJobs"); onProfileOpen(false); }
+                  if (item === "Messages") { onNavigate("messages"); onProfileOpen(false); }
                 }}
                 style={{
                   display: "block", width: "100%", padding: "10px 14px",
@@ -337,6 +341,16 @@ export default function ReBuHomepage({ user, onLogout }) {
         {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
         <AppHeader {...sharedHeaderProps} />
         <MyJobs user={user} onNavigate={navigate} />
+      </div>
+    );
+  }
+
+  if (page === "messages") {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+        {profileModalOpen && <ProfileModal user={user} onClose={() => setProfileModalOpen(false)} />}
+        <AppHeader {...sharedHeaderProps} />
+        <Messages user={user} />
       </div>
     );
   }

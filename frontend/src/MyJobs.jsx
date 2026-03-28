@@ -234,7 +234,7 @@ export default function MyJobs({ user, onNavigate }) {
                       )}
                       {/* Completed — view only */}
                       {job.status === "done" && (
-                        <button onClick={() => navigate(`/job/${job.id}`)} style={{ padding: "7px 14px", borderRadius: "7px", border: "1px solid rgba(56,189,248,0.2)", background: "transparent", color: "#38bdf8", fontSize: "12px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                        <button onClick={() => console.log("View job", job.id)} style={{ padding: "7px 14px", borderRadius: "7px", border: "1px solid rgba(56,189,248,0.2)", background: "transparent", color: "#38bdf8", fontSize: "12px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
                           View Details
                         </button>
                       )}

@@ -34,3 +34,38 @@ class Job(models.Model):
     date_needed  = models.DateField()
     status       = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
     created_at   = models.DateTimeField(auto_now_add=True)
+
+# ──────────────────────────────────────────────
+# Add these two classes to the BOTTOM of myproject/models.py
+# (below your existing Profile and Job models)
+# ──────────────────────────────────────────────
+
+class Conversation(models.Model):
+    """One conversation thread between two users. Always exactly 2 participants."""
+    user_one    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='convos_as_one')
+    user_two    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='convos_as_two')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)  # bumped on every new message
+
+    class Meta:
+        # prevent duplicate threads between the same pair
+        constraints = [
+            models.UniqueConstraint(fields=['user_one', 'user_two'], name='unique_conversation')
+        ]
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Conversation({self.user_one} <-> {self.user_two})"
+
+
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    sender       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    text         = models.TextField()
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']  # oldest first — natural chat order
+
+    def __str__(self):
+        return f"Message from {self.sender} at {self.created_at}"

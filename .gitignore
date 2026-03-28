@@ -23,3 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 venv/  
 venv/ 
+__pycache__/ 
+*.pyc 
+db.sqlite3 
+node_modules/ 

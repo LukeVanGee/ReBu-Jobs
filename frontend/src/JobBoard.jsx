@@ -122,7 +122,8 @@ export default function JobBoard({ user, onNavigate }) {
         ) : filteredJobs.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {filteredJobs.map(job => (
-              <div key={job.id} onClick={() => navigate(`/job/${job.id}`)} onMouseEnter={() => setHoveredJob(job.id)} onMouseLeave={() => setHoveredJob(null)} style={{ padding: "20px 24px", borderRadius: "12px", background: hoveredJob === job.id ? "rgba(56,189,248,0.03)" : "#111827", border: hoveredJob === job.id ? "1px solid rgba(56,189,248,0.12)" : "1px solid rgba(56,189,248,0.04)", cursor: "pointer", transition: "all 0.15s ease" }}>
+              <div key={job.id} onClick={() => console.log("View job", job.id)}
+ onMouseEnter={() => setHoveredJob(job.id)} onMouseLeave={() => setHoveredJob(null)} style={{ padding: "20px 24px", borderRadius: "12px", background: hoveredJob === job.id ? "rgba(56,189,248,0.03)" : "#111827", border: hoveredJob === job.id ? "1px solid rgba(56,189,248,0.12)" : "1px solid rgba(56,189,248,0.04)", cursor: "pointer", transition: "all 0.15s ease" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
