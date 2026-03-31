@@ -57,8 +57,21 @@ export default function CreateJobRequest({ user, onBack }) {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
     if (!validate()) return;
+
+    // ── Auth guard ──────────────────────────────────────────────
+    // Remove this block once auth is confirmed working
+    console.log("user prop:", user);
+    console.log("token being sent:", user?.token);
+
+    if (!user?.token) {
+      setServerError("You must be logged in to post a job. (token missing)");
+      setLoading(false);
+      return;
+    }
+    // ────────────────────────────────────────────────────────────
+
     setLoading(true);
     setServerError(null);
     try {
@@ -66,8 +79,7 @@ export default function CreateJobRequest({ user, onBack }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Attach the user's JWT token so Django knows who is posting
-          "Authorization": `Bearer ${user?.token}`,
+          "Authorization": `Bearer ${user.token}`,
         },
         body: JSON.stringify({
           title,
