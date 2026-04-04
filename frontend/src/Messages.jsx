@@ -193,18 +193,21 @@ export default function Messages({ user }) {
       );
     }
 
-    // ── job_accepted / job_declined system notice ──
-    if (m.msg_type === "job_accepted" || m.msg_type === "job_declined") {
-      const accepted = m.msg_type === "job_accepted";
+    // ── job_accepted / job_declined / job_completed system notice ──
+    if (["job_accepted", "job_declined", "job_completed"].includes(m.msg_type)) {
+      const styles = {
+        job_accepted:  { bg: "rgba(16,185,129,0.08)",  border: "rgba(16,185,129,0.2)",  color: "#34d399", icon: "✓" },
+        job_declined:  { bg: "rgba(239,68,68,0.08)",   border: "rgba(239,68,68,0.2)",   color: "#f87171", icon: "✕" },
+        job_completed: { bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.2)", color: "#a78bfa", icon: "🏁" },
+      }[m.msg_type];
       return (
         <div key={m.id} style={{ alignSelf: "center", width: "100%", maxWidth: 420, margin: "4px 0" }}>
           <div style={{
             padding: "10px 16px", borderRadius: 10, textAlign: "center",
-            background: accepted ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)",
-            border: `1px solid ${accepted ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}`,
-            fontSize: 13, color: accepted ? "#34d399" : "#f87171",
+            background: styles.bg, border: `1px solid ${styles.border}`,
+            fontSize: 13, color: styles.color,
           }}>
-            {accepted ? "✓" : "✕"} {m.text}
+            {styles.icon} {m.text}
           </div>
           <div style={{ textAlign: "center", fontSize: 10, color: "#475569", marginTop: 4 }}>
             {fmt(m.created_at)}
