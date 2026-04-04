@@ -237,11 +237,27 @@ def decline_job(request, job_id):
 @permission_classes([IsAuthenticated])
 def complete_job(request, job_id):
     try:
-        job = Job.objects.get(id=job_id, assigned_to=request.user)
+        job = Job.objects.select_related('posted_by').get(id=job_id, assigned_to=request.user)
     except Job.DoesNotExist:
         return Response({'error': 'Job not found.'}, status=404)
     job.status = 'done'
     job.save()
+
+    # Notify the customer via the job's conversation
+    convo = Conversation.objects.filter(job=job).first()
+    if convo:
+        worker_name = request.user.first_name or request.user.username
+        Message.objects.create(
+            conversation=convo,
+            sender=request.user,
+            msg_type='job_completed',
+            text=(
+                f"{worker_name} has marked \"{job.title}\" as complete. "
+                f"Please review the work and leave a rating."
+            ),
+        )
+        convo.save()  # bumps updated_at → floats to top of sidebar
+
     return Response({'success': True})
 
 

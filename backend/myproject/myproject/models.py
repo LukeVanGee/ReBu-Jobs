@@ -65,7 +65,8 @@ class Message(models.Model):
         ('text',         'Text'),
         ('job_request',  'Job Request'),   # system card — worker requesting the job
         ('job_accepted', 'Job Accepted'),  # system card — customer approved
-        ('job_declined', 'Job Declined'),  # system card — customer declined
+        ('job_declined',   'Job Declined'),   # system card — customer declined
+        ('job_completed',  'Job Completed'),  # system card — worker marked done
     ]
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     sender       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
