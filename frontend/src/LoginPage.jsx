@@ -67,16 +67,6 @@ const Button = ({ children, onClick, loading, variant = "primary", style: s = {}
   );
 };
 
-const RolePill = ({ role, selected, onClick }) => (
-  <button onClick={onClick} style={{
-    flex: 1, padding: "12px 0", borderRadius: 10, border: `2px solid ${selected ? COLORS.primary : COLORS.border}`,
-    background: selected ? COLORS.primaryLight : "#fff", color: selected ? COLORS.primary : COLORS.textMuted,
-    fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all .2s"
-  }}>
-    {role === "customer" ? "🏠 Customer" : "🔧 Worker"}
-  </button>
-);
-
 const Logo = () => (
   <div style={{ textAlign: "center", marginBottom: 8 }}>
     <div style={{
@@ -119,16 +109,12 @@ const CodeInput = ({ value, onChange, error }) => {
     if (e.key === 'Backspace') {
       e.preventDefault();
       const next = digits.slice();
-      if (next[i]) {
-        next[i] = '';
-      } else if (i > 0) {
-        next[i - 1] = '';
-        inputs.current[i - 1]?.focus();
-      }
+      if (next[i]) { next[i] = ''; }
+      else if (i > 0) { next[i - 1] = ''; inputs.current[i - 1]?.focus(); }
       onChange(next.join(''));
       return;
     }
-    if (e.key === 'ArrowLeft' && i > 0) { inputs.current[i - 1]?.focus(); return; }
+    if (e.key === 'ArrowLeft'  && i > 0) { inputs.current[i - 1]?.focus(); return; }
     if (e.key === 'ArrowRight' && i < 5) { inputs.current[i + 1]?.focus(); return; }
   };
 
@@ -152,14 +138,10 @@ const CodeInput = ({ value, onChange, error }) => {
       <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "20px 0 6px" }}>
         {digits.map((d, i) => (
           <input
-            key={i}
-            ref={el => inputs.current[i] = el}
-            value={d}
-            onChange={e => handleChange(i, e)}
-            onKeyDown={e => handleKey(i, e)}
-            onPaste={handlePaste}
-            maxLength={1}
-            inputMode="numeric"
+            key={i} ref={el => inputs.current[i] = el}
+            value={d} onChange={e => handleChange(i, e)}
+            onKeyDown={e => handleKey(i, e)} onPaste={handlePaste}
+            maxLength={1} inputMode="numeric"
             style={{
               width: 46, height: 54, textAlign: "center", fontSize: 22, fontWeight: 700,
               border: `2px solid ${error ? COLORS.error : d ? COLORS.primary : COLORS.border}`,
@@ -176,10 +158,10 @@ const CodeInput = ({ value, onChange, error }) => {
 
 // ── Verify screen ─────────────────────────────────────────────────
 const VerifyScreen = ({ email, onSuccess, onBack, showToast }) => {
-  const [code, setCode]       = useState('');
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
-  const [resendCd, setResendCd] = useState(30); // seconds until resend allowed
+  const [code, setCode]         = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [resendCd, setResendCd] = useState(30);
 
   useEffect(() => {
     if (resendCd <= 0) return;
@@ -188,16 +170,11 @@ const VerifyScreen = ({ email, onSuccess, onBack, showToast }) => {
   }, [resendCd]);
 
   const handleVerify = async () => {
-    if (code.replace(/\D/g, '').length < 6) {
-      setError('Please enter the full 6-digit code.');
-      return;
-    }
-    setError('');
-    setLoading(true);
+    if (code.replace(/\D/g, '').length < 6) { setError('Please enter the full 6-digit code.'); return; }
+    setError(''); setLoading(true);
     try {
       const res  = await fetch(`${API_URL}/auth/verify-signup/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code }),
       });
       const data = await res.json();
@@ -206,31 +183,21 @@ const VerifyScreen = ({ email, onSuccess, onBack, showToast }) => {
         onSuccess(data);
       } else {
         setError(data.error || 'Verification failed.');
-        if (data.error?.includes('expired') || data.error?.includes('sign up again')) {
-          setTimeout(onBack, 2500);
-        }
+        if (data.error?.includes('expired') || data.error?.includes('sign up again')) setTimeout(onBack, 2500);
       }
-    } catch {
-      setError('Server error, try again.');
-    }
+    } catch { setError('Server error, try again.'); }
     setLoading(false);
   };
 
   const handleResend = async () => {
-    // Re-hit the signup endpoint — backend upserts a fresh code
-    setResendCd(30);
-    setCode('');
-    setError('');
+    setResendCd(30); setCode(''); setError('');
     try {
       await fetch(`${API_URL}/auth/signup/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, _resend: true }),
       });
       showToast({ message: 'New code sent!', type: 'success' });
-    } catch {
-      showToast({ message: 'Could not resend. Try again.', type: 'error' });
-    }
+    } catch { showToast({ message: 'Could not resend. Try again.', type: 'error' }); }
   };
 
   return (
@@ -243,28 +210,16 @@ const VerifyScreen = ({ email, onSuccess, onBack, showToast }) => {
           <strong style={{ color: COLORS.text }}>{email}</strong>
         </p>
       </div>
-
       <CodeInput value={code} onChange={setCode} error={error} />
-
-      <Button onClick={handleVerify} loading={loading} style={{ marginTop: 20 }}>
-        Verify & Create Account
-      </Button>
-
+      <Button onClick={handleVerify} loading={loading} style={{ marginTop: 20 }}>Verify & Create Account</Button>
       <div style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: COLORS.textMuted }}>
         {resendCd > 0
           ? <>Resend code in <strong style={{ color: COLORS.text }}>{resendCd}s</strong></>
-          : <>Didn't get it?{' '}
-              <span onClick={handleResend} style={{ color: COLORS.primary, fontWeight: 600, cursor: "pointer" }}>
-                Resend code
-              </span>
-            </>
+          : <>Didn't get it?{' '}<span onClick={handleResend} style={{ color: COLORS.primary, fontWeight: 600, cursor: "pointer" }}>Resend code</span></>
         }
       </div>
-
       <div style={{ textAlign: "center", marginTop: 12 }}>
-        <span onClick={onBack} style={{ fontSize: 13, color: COLORS.textMuted, cursor: "pointer" }}>
-          ← Back to sign up
-        </span>
+        <span onClick={onBack} style={{ fontSize: 13, color: COLORS.textMuted, cursor: "pointer" }}>← Back to sign up</span>
       </div>
     </>
   );
@@ -273,13 +228,13 @@ const VerifyScreen = ({ email, onSuccess, onBack, showToast }) => {
 
 // ── Main export ───────────────────────────────────────────────────
 export default function App({ onLoginSuccess }) {
-  const [view, setView]     = useState("login");   // "login" | "signup" | "verify"
+  const [view, setView]       = useState("login");
   const [loading, setLoading] = useState(false);
-  const [toast, setToast]   = useState(null);
+  const [toast, setToast]     = useState(null);
 
   // Login state
-  const [lEmail, setLEmail] = useState("");
-  const [lPass, setLPass]   = useState("");
+  const [lEmail, setLEmail]   = useState("");
+  const [lPass, setLPass]     = useState("");
   const [lErrors, setLErrors] = useState({});
 
   // Signup state
@@ -287,22 +242,17 @@ export default function App({ onLoginSuccess }) {
   const [sEmail, setSEmail]     = useState("");
   const [sPass, setSPass]       = useState("");
   const [sConfirm, setSConfirm] = useState("");
-  const [sRole, setSRole]       = useState("customer");
   const [sErrors, setSErrors]   = useState({});
 
-  // Pending email carried into verify screen
   const [pendingEmail, setPendingEmail] = useState("");
 
   useEffect(() => {
-    if (toast) {
-      const t = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(t);
-    }
+    if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); }
   }, [toast]);
 
   const handleLogin = async () => {
     const errs = {};
-    if (!lEmail) errs.email = "Email is required";
+    if (!lEmail) errs.email    = "Email is required";
     if (!lPass)  errs.password = "Password is required";
     setLErrors(errs);
     if (Object.keys(errs).length) return;
@@ -310,8 +260,7 @@ export default function App({ onLoginSuccess }) {
     setLoading(true);
     try {
       const res  = await fetch(`${API_URL}/auth/login/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: lEmail, password: lPass }),
       });
       const data = await res.json();
@@ -322,19 +271,16 @@ export default function App({ onLoginSuccess }) {
         setLErrors({ email: data.error });
         setToast({ message: "Invalid credentials", type: "error" });
       }
-    } catch {
-      setToast({ message: "Server error, try again", type: "error" });
-    }
+    } catch { setToast({ message: "Server error, try again", type: "error" }); }
     setLoading(false);
   };
 
-  // Step 1 — submit the signup form → sends verification email
   const handleSignup = async () => {
     const errs = {};
-    if (!sName.trim())                     errs.name    = "Name is required";
-    if (!sEmail)                           errs.email   = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(sEmail)) errs.email   = "Enter a valid email";
-    if (!sPass)                            errs.password = "Password is required";
+    if (!sName.trim())                      errs.name     = "Name is required";
+    if (!sEmail)                            errs.email    = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(sEmail)) errs.email    = "Enter a valid email";
+    if (!sPass)                             errs.password = "Password is required";
     else if (sPass.length < 8)             errs.password = "Must be at least 8 characters";
     if (sPass !== sConfirm)                errs.confirm  = "Passwords don't match";
     setSErrors(errs);
@@ -343,9 +289,8 @@ export default function App({ onLoginSuccess }) {
     setLoading(true);
     try {
       const res  = await fetch(`${API_URL}/auth/signup/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: sEmail, password: sPass, name: sName.trim(), role: sRole }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: sEmail, password: sPass, name: sName.trim() }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -356,9 +301,7 @@ export default function App({ onLoginSuccess }) {
         setSErrors({ email: data.error });
         setToast({ message: data.error || "Signup failed, try again", type: "error" });
       }
-    } catch {
-      setToast({ message: "Server error, try again", type: "error" });
-    }
+    } catch { setToast({ message: "Server error, try again", type: "error" }); }
     setLoading(false);
   };
 
@@ -372,23 +315,13 @@ export default function App({ onLoginSuccess }) {
         input::placeholder { color: #94A3B8 }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} />}
-      <div style={{
-        width: "100%", maxWidth: 420, background: COLORS.card, borderRadius: 20,
-        boxShadow: "0 4px 40px rgba(0,0,0,.08)", padding: "36px 32px", position: "relative"
-      }}>
+      <div style={{ width: "100%", maxWidth: 420, background: COLORS.card, borderRadius: 20, boxShadow: "0 4px 40px rgba(0,0,0,.08)", padding: "36px 32px", position: "relative" }}>
         <Logo />
 
-        {/* ── Verify screen (no tabs) ── */}
         {view === "verify" ? (
-          <VerifyScreen
-            email={pendingEmail}
-            onSuccess={onLoginSuccess}
-            onBack={() => setView("signup")}
-            showToast={setToast}
-          />
+          <VerifyScreen email={pendingEmail} onSuccess={onLoginSuccess} onBack={() => setView("signup")} showToast={setToast} />
         ) : (
           <>
-            {/* Tab Switcher */}
             <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 10, padding: 4, marginBottom: 24, marginTop: 20 }}>
               {["login", "signup"].map(v => (
                 <button key={v} onClick={() => switchTab(v)} style={{
@@ -422,13 +355,6 @@ export default function App({ onLoginSuccess }) {
                 <InputField icon="✉" label="Email" value={sEmail} onChange={setSEmail} placeholder="you@email.com" error={sErrors.email} />
                 <InputField icon="🔒" label="Password" type="password" value={sPass} onChange={setSPass} placeholder="Min 8 characters" error={sErrors.password} />
                 <InputField icon="🔒" label="Confirm Password" type="password" value={sConfirm} onChange={setSConfirm} placeholder="Re-enter password" error={sErrors.confirm} />
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: COLORS.textMuted, marginBottom: 8 }}>I want to...</label>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <RolePill role="customer" selected={sRole === "customer"} onClick={() => setSRole("customer")} />
-                    <RolePill role="worker"   selected={sRole === "worker"}   onClick={() => setSRole("worker")} />
-                  </div>
-                </div>
                 <Button onClick={handleSignup} loading={loading}>Send Verification Code</Button>
                 <Divider />
                 <Button variant="outline" style={{ gap: 8 }}>
