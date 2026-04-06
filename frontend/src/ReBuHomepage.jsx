@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CreateJobRequest from "./CreateJobRequest";
 import JobBoard from "./JobBoard";
 import MyJobs from "./MyJobs";
@@ -26,22 +26,40 @@ const stats = [];
 // PROFILE MODAL
 // TODO: Replace mock stats with GET /api/profile/:userId
 // ============================================================
+
 const ProfileModal = ({ user, onClose }) => {
-  const profileStats = {
-    jobsCompleted: 0,
-    qualityRating: null,
-    avgPay: null,
-    reviewCount: 0,
-    accountRating: null,
-  };
+  const cr = user?.customerRating  ?? 0;
+  const wr = user?.workerRating    ?? 0;
+  const crCount = user?.customerReviews ?? 0;
+  const wrCount = user?.workerReviews   ?? 0;
 
-  const isWorker = user?.role === "worker";
-
-  const StarRow = ({ rating }) => (
+  const Stars = ({ rating }) => (
     <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <span key={i} style={{ fontSize: 16, color: rating && i <= Math.round(rating) ? "#f59e0b" : "#334155" }}>★</span>
+      {[1,2,3,4,5].map(i => (
+        <span key={i} style={{ fontSize: 15, color: rating && i <= Math.round(rating) ? "#f59e0b" : "#334155" }}>★</span>
       ))}
+    </div>
+  );
+
+  const RatingCard = ({ icon, label, rating, reviewCount }) => (
+    <div style={{
+      padding: "16px 18px", borderRadius: 12,
+      background: "#111827", border: "1px solid rgba(56,189,248,0.07)",
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 6 }}>
+        {icon} {label}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: "#f59e0b" }}>
+            {reviewCount > 0 ? rating.toFixed(1) : "N/A"}
+          </div>
+          {reviewCount > 0 && <Stars rating={rating} />}
+        </div>
+        <div style={{ fontSize: 13, color: "#475569", marginTop: 4 }}>
+          {reviewCount} review{reviewCount !== 1 ? "s" : ""}
+        </div>
+      </div>
     </div>
   );
 
@@ -58,8 +76,7 @@ const ProfileModal = ({ user, onClose }) => {
         onClick={e => e.stopPropagation()}
         style={{
           width: "100%", maxWidth: 400,
-          background: "#0d1526",
-          border: "1px solid rgba(56,189,248,0.12)",
+          background: "#0d1526", border: "1px solid rgba(56,189,248,0.12)",
           borderRadius: 20, padding: 28, position: "relative",
           boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
         }}
@@ -73,6 +90,7 @@ const ProfileModal = ({ user, onClose }) => {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>×</button>
 
+        {/* Avatar + name */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
           <div style={{
             width: 64, height: 64, borderRadius: "50%",
@@ -82,77 +100,18 @@ const ProfileModal = ({ user, onClose }) => {
           }}>
             {user?.name?.[0]?.toUpperCase() || "U"}
           </div>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "#f1f5f9", marginBottom: 6 }}>
-              {user?.name || "User"}
-            </div>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "4px 10px", borderRadius: 20,
-              background: isWorker ? "rgba(16,185,129,0.12)" : "rgba(56,189,248,0.1)",
-              color: isWorker ? "#34d399" : "#38bdf8",
-              fontSize: 13, fontWeight: 600,
-            }}>
-              {isWorker ? "🔧" : "🏠"} {isWorker ? "Worker" : "Customer"}
-            </div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#f1f5f9" }}>
+            {user?.name || "User"}
           </div>
         </div>
 
-        <div style={{
-          padding: "16px 18px", borderRadius: 12,
-          background: "#111827", border: "1px solid rgba(56,189,248,0.07)",
-          marginBottom: 20,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 4 }}>
-            Account Rating
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: "#f59e0b" }}>
-                {profileStats.accountRating ?? "N/A"}
-              </div>
-              <StarRow rating={profileStats.accountRating} />
-            </div>
-            <div style={{ fontSize: 13, color: "#475569", marginTop: 4 }}>
-              {profileStats.reviewCount} review{profileStats.reviewCount !== 1 ? "s" : ""}
-            </div>
-          </div>
+        {/* Dual rating cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+          <RatingCard icon="🏠" label="As Customer" rating={cr} reviewCount={crCount} />
+          <RatingCard icon="🔧" label="As Worker"   rating={wr} reviewCount={wrCount} />
         </div>
 
-        {isWorker && (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 12 }}>
-              Worker Stats
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-              {[
-                { icon: "✅", value: profileStats.jobsCompleted, label: "Jobs Completed" },
-                { icon: "🏆", value: profileStats.qualityRating ?? "N/A", label: "Quality Rating" },
-              ].map(s => (
-                <div key={s.label} style={{
-                  padding: "18px 12px", borderRadius: 12, textAlign: "center",
-                  background: "#111827", border: "1px solid rgba(56,189,248,0.07)",
-                }}>
-                  <div style={{ fontSize: 28, marginBottom: 6 }}>{s.icon}</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>{s.value}</div>
-                  <div style={{ fontSize: 11, color: "#475569", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{
-              padding: "18px 12px", borderRadius: 12, textAlign: "center",
-              background: "#111827", border: "1px solid rgba(56,189,248,0.07)",
-              marginBottom: 20,
-            }}>
-              <div style={{ fontSize: 28, marginBottom: 6 }}>💰</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>
-                {profileStats.avgPay ? `$${profileStats.avgPay}` : "N/A"}
-              </div>
-              <div style={{ fontSize: 11, color: "#475569", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Avg. Pay</div>
-            </div>
-          </>
-        )}
-
+        {/* Email */}
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "13px 16px", borderRadius: 10,
@@ -166,8 +125,6 @@ const ProfileModal = ({ user, onClose }) => {
     </div>
   );
 };
-
-
 // ============================================================
 // SHARED HEADER
 // ============================================================
@@ -477,6 +434,11 @@ export default function ReBuHomepage({ user, onLogout }) {
             </div>
           )}
         </div>
+
+      </main>
+    </div>
+  );
+}
 
       </main>
     </div>

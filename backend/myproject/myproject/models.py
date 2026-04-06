@@ -7,11 +7,13 @@ import datetime
 
 
 class Profile(models.Model):
-    ROLE_CHOICES = [('customer', 'Customer'), ('worker', 'Worker')]
-    user         = models.OneToOneField(User, on_delete=models.CASCADE)
-    role         = models.CharField(max_length=10, choices=ROLE_CHOICES, default='customer')
-    rating       = models.FloatField(default=0)
-    review_count = models.IntegerField(default=0)
+    user              = models.OneToOneField(User, on_delete=models.CASCADE)
+    # Customer-side rating (received as a job poster)
+    customer_rating   = models.FloatField(default=0)
+    customer_reviews  = models.IntegerField(default=0)
+    # Worker-side rating (received as a job doer)
+    worker_rating     = models.FloatField(default=0)
+    worker_reviews    = models.IntegerField(default=0)
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
@@ -25,11 +27,10 @@ class PendingSignup(models.Model):
     Expires after 15 minutes. Cleaned up on successful verification or expiry.
     """
     email      = models.EmailField(unique=True)
-    password   = models.CharField(max_length=128)   # stored as plain text briefly — hashed on User creation
+    password   = models.CharField(max_length=128)
     name       = models.CharField(max_length=150)
-    role       = models.CharField(max_length=10)
     code       = models.CharField(max_length=6)
-    attempts   = models.IntegerField(default=0)      # wrong-guess counter
+    attempts   = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_expired(self):

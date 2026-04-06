@@ -19,6 +19,18 @@ def _generate_code(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
 
+def _profile_payload(user):
+    p = user.profile
+    return {
+        'id':              user.id,
+        'name':            user.first_name,
+        'customerRating':  p.customer_rating,
+        'customerReviews': p.customer_reviews,
+        'workerRating':    p.worker_rating,
+        'workerReviews':   p.worker_reviews,
+    }
+
+
 @api_view(['POST'])
 def signup(request):
     """
@@ -28,24 +40,19 @@ def signup(request):
     email    = request.data.get('email', '').strip().lower()
     password = request.data.get('password', '')
     name     = request.data.get('name', '').strip()
-    role     = request.data.get('role', 'customer')
 
-    # Basic validation
-    if not all([email, password, name, role]):
+    if not all([email, password, name]):
         return Response({'error': 'All fields are required.'}, status=400)
     if len(password) < 8:
         return Response({'error': 'Password must be at least 8 characters.'}, status=400)
-    if role not in ('customer', 'worker'):
-        return Response({'error': 'Invalid role.'}, status=400)
 
     if User.objects.filter(username=email).exists():
         return Response({'error': 'Email already registered.'}, status=400)
 
-    # Upsert PendingSignup so a retry gets a fresh code
     code = _generate_code()
     PendingSignup.objects.update_or_create(
         email=email,
-        defaults={'password': password, 'name': name, 'role': role, 'code': code, 'attempts': 0},
+        defaults={'password': password, 'name': name, 'code': code, 'attempts': 0},
     )
 
     send_mail(
@@ -97,7 +104,6 @@ def verify_signup(request):
         remaining = MAX_ATTEMPTS - pending.attempts
         return Response({'error': f'Incorrect code. {remaining} attempt(s) remaining.'}, status=400)
 
-    # Code is correct — create the real user
     if User.objects.filter(username=email).exists():
         pending.delete()
         return Response({'error': 'Email already registered.'}, status=400)
@@ -106,18 +112,12 @@ def verify_signup(request):
         username=email, email=email,
         password=pending.password, first_name=pending.name,
     )
-    user.profile.role = pending.role
-    user.profile.save()
     pending.delete()
 
     refresh = RefreshToken.for_user(user)
     return Response({
-        'id':    user.id,
+        **_profile_payload(user),
         'token': str(refresh.access_token),
-        'name':  pending.name,
-        'role':  pending.role,
-        'rating': 0, 'reviewCount': 0,
-        'stats': _default_stats(pending.role),
     }, status=201)
 
 
@@ -128,21 +128,10 @@ def login(request):
     if user:
         refresh = RefreshToken.for_user(user)
         return Response({
-            'id':    user.id,
+            **_profile_payload(user),
             'token': str(refresh.access_token),
-            'name':  user.first_name,
-            'role':  user.profile.role,
-            'rating': user.profile.rating,
-            'reviewCount': user.profile.review_count,
-            'stats': _default_stats(user.profile.role),
         })
     return Response({'error': 'Invalid credentials'}, status=400)
-
-
-def _default_stats(role):
-    if role == 'customer':
-        return {'jobsPosted': 0, 'avgPay': 'N/A', 'avgDuration': 'N/A'}
-    return {'jobsDone': 0, 'qualityRating': 'N/A', 'avgPayReceived': 'N/A'}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -200,9 +189,6 @@ def my_jobs(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def request_job(request, job_id):
-    if not hasattr(request.user, 'profile') or request.user.profile.role != 'worker':
-        return Response({'error': 'Only workers can request jobs.'}, status=403)
-
     try:
         job = Job.objects.select_related('posted_by').get(id=job_id)
     except Job.DoesNotExist:
