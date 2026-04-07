@@ -439,8 +439,3 @@ export default function ReBuHomepage({ user, onLogout }) {
     </div>
   );
 }
-
-      </main>
-    </div>
-  );
-}

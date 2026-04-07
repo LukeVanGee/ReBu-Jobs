@@ -1,30 +1,38 @@
 import { useState, useEffect, useRef } from "react";
 
 const COLORS = {
-  primary: "#2563EB",
-  primaryDark: "#1D4ED8",
-  primaryLight: "#DBEAFE",
-  accent: "#10B981",
-  bg: "#F8FAFC",
-  card: "#FFFFFF",
-  text: "#1E293B",
-  textMuted: "#64748B",
-  border: "#E2E8F0",
-  error: "#EF4444",
-  errorBg: "#FEF2F2",
+  primary: "#38bdf8",
+  primaryDark: "#0ea5e9",
+  primaryLight: "rgba(56,189,248,0.1)",
+  accent: "#34d399",
+  bg: "#0a0f1a",
+  card: "#0d1526",
+  cardAlt: "#111827",
+  text: "#e2e8f0",
+  textBright: "#f1f5f9",
+  textMuted: "#64748b",
+  border: "#1e293b",
+  borderFocus: "rgba(56,189,248,0.35)",
+  error: "#f87171",
+  errorBg: "rgba(239,68,68,0.08)",
+  inputBg: "#0a0f1a",
 };
 
 const API_URL = "http://localhost:8000/api";
 
 const InputField = ({ icon, label, type = "text", value, onChange, placeholder, error }) => {
   const [show, setShow] = useState(false);
+  const [focused, setFocused] = useState(false);
   const isPassword = type === "password";
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: COLORS.textMuted, marginBottom: 6 }}>{label}</label>
       <div style={{
-        display: "flex", alignItems: "center", border: `1.5px solid ${error ? COLORS.error : COLORS.border}`,
-        borderRadius: 10, padding: "0 12px", background: error ? COLORS.errorBg : "#F8FAFC", transition: "border .2s"
+        display: "flex", alignItems: "center",
+        border: `1.5px solid ${error ? COLORS.error : focused ? COLORS.borderFocus : COLORS.border}`,
+        borderRadius: 10, padding: "0 12px",
+        background: error ? COLORS.errorBg : COLORS.inputBg,
+        transition: "border .2s",
       }}>
         <span style={{ marginRight: 10, fontSize: 18, opacity: 0.5 }}>{icon}</span>
         <input
@@ -32,13 +40,16 @@ const InputField = ({ icon, label, type = "text", value, onChange, placeholder, 
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           style={{
             flex: 1, border: "none", outline: "none", background: "transparent",
-            padding: "13px 0", fontSize: 15, color: COLORS.text
+            padding: "13px 0", fontSize: 15, color: COLORS.text,
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
           }}
         />
         {isPassword && (
-          <span onClick={() => setShow(!show)} style={{ cursor: "pointer", fontSize: 14, color: COLORS.primary, fontWeight: 600, userSelect: "none" }}>
+          <span onClick={() => setShow(!show)} style={{ cursor: "pointer", fontSize: 13, color: COLORS.primary, fontWeight: 600, userSelect: "none" }}>
             {show ? "Hide" : "Show"}
           </span>
         )}
@@ -55,10 +66,17 @@ const Button = ({ children, onClick, loading, variant = "primary", style: s = {}
       onClick={onClick}
       disabled={loading}
       style={{
-        width: "100%", padding: "14px 0", borderRadius: 10, border: isPrimary ? "none" : `1.5px solid ${COLORS.border}`,
-        background: isPrimary ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryDark})` : COLORS.card,
-        color: isPrimary ? "#fff" : COLORS.text, fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-        opacity: loading ? 0.7 : 1, transition: "all .2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, ...s
+        width: "100%", padding: "14px 0", borderRadius: 10,
+        border: isPrimary ? "none" : `1.5px solid ${COLORS.border}`,
+        background: isPrimary
+          ? `linear-gradient(135deg, ${COLORS.primaryDark} 0%, #06b6d4 100%)`
+          : COLORS.cardAlt,
+        color: isPrimary ? "#fff" : COLORS.text,
+        fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+        opacity: loading ? 0.7 : 1, transition: "all .2s",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        ...s,
       }}
     >
       {loading && <span style={{ display: "inline-block", width: 18, height: 18, border: "2.5px solid rgba(255,255,255,.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />}
@@ -71,12 +89,16 @@ const Logo = () => (
   <div style={{ textAlign: "center", marginBottom: 8 }}>
     <div style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`,
-      marginBottom: 8
+      width: 56, height: 56, borderRadius: 16,
+      background: `linear-gradient(135deg, ${COLORS.primaryDark}, #06b6d4)`,
+      marginBottom: 8,
     }}>
       <span style={{ fontSize: 28, color: "#fff", fontWeight: 900 }}>R</span>
     </div>
-    <h1 style={{ fontSize: 28, fontWeight: 800, color: COLORS.text, margin: 0 }}>Rebu</h1>
+    <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>
+      <span style={{ color: COLORS.text }}>Re</span>
+      <span style={{ color: COLORS.primary }}>Bu</span>
+    </h1>
     <p style={{ color: COLORS.textMuted, fontSize: 14, margin: "4px 0 0" }}>Your neighborhood job marketplace</p>
   </div>
 );
@@ -94,7 +116,7 @@ const Toast = ({ message, type = "success" }) => (
     position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)",
     background: type === "success" ? COLORS.accent : COLORS.error, color: "#fff",
     padding: "12px 28px", borderRadius: 10, fontWeight: 600, fontSize: 14,
-    boxShadow: "0 8px 30px rgba(0,0,0,.15)", zIndex: 999, animation: "slideDown .3s ease"
+    boxShadow: "0 8px 30px rgba(0,0,0,.3)", zIndex: 999, animation: "slideDown .3s ease",
   }}>
     {type === "success" ? "✓" : "✕"} {message}
   </div>
@@ -145,8 +167,10 @@ const CodeInput = ({ value, onChange, error }) => {
             style={{
               width: 46, height: 54, textAlign: "center", fontSize: 22, fontWeight: 700,
               border: `2px solid ${error ? COLORS.error : d ? COLORS.primary : COLORS.border}`,
-              borderRadius: 10, outline: "none", background: d ? COLORS.primaryLight : "#F8FAFC",
+              borderRadius: 10, outline: "none",
+              background: d ? COLORS.primaryLight : COLORS.inputBg,
               color: COLORS.text, transition: "border .15s, background .15s",
+              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             }}
           />
         ))}
@@ -204,7 +228,7 @@ const VerifyScreen = ({ email, onSuccess, onBack, showToast }) => {
     <>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>📬</div>
-        <h2 style={{ fontSize: 20, fontWeight: 800, color: COLORS.text, margin: "0 0 6px" }}>Check your inbox</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: COLORS.textBright, margin: "0 0 6px" }}>Check your inbox</h2>
         <p style={{ fontSize: 14, color: COLORS.textMuted, margin: 0 }}>
           We sent a 6-digit code to<br />
           <strong style={{ color: COLORS.text }}>{email}</strong>
@@ -308,27 +332,46 @@ export default function App({ onLoginSuccess }) {
   const switchTab = v => { setView(v); setLErrors({}); setSErrors({}); };
 
   return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <div style={{
+      minHeight: "100vh", background: COLORS.bg,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 16,
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
         @keyframes slideDown { from { opacity:0; transform: translate(-50%,-20px) } to { opacity:1; transform: translate(-50%,0) } }
-        input::placeholder { color: #94A3B8 }
+        input::placeholder { color: #475569 }
       `}</style>
       {toast && <Toast message={toast.message} type={toast.type} />}
-      <div style={{ width: "100%", maxWidth: 420, background: COLORS.card, borderRadius: 20, boxShadow: "0 4px 40px rgba(0,0,0,.08)", padding: "36px 32px", position: "relative" }}>
+      <div style={{
+        width: "100%", maxWidth: 420,
+        background: COLORS.card,
+        borderRadius: 20,
+        boxShadow: "0 4px 40px rgba(0,0,0,.3)",
+        border: "1px solid rgba(56,189,248,0.08)",
+        padding: "36px 32px",
+        position: "relative",
+      }}>
         <Logo />
 
         {view === "verify" ? (
           <VerifyScreen email={pendingEmail} onSuccess={onLoginSuccess} onBack={() => setView("signup")} showToast={setToast} />
         ) : (
           <>
-            <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 10, padding: 4, marginBottom: 24, marginTop: 20 }}>
+            <div style={{
+              display: "flex", background: COLORS.inputBg, borderRadius: 10, padding: 4,
+              marginBottom: 24, marginTop: 20,
+              border: `1px solid ${COLORS.border}`,
+            }}>
               {["login", "signup"].map(v => (
                 <button key={v} onClick={() => switchTab(v)} style={{
                   flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
-                  background: view === v ? "#fff" : "transparent", color: view === v ? COLORS.text : COLORS.textMuted,
+                  background: view === v ? COLORS.cardAlt : "transparent",
+                  color: view === v ? COLORS.primary : COLORS.textMuted,
                   fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all .2s",
-                  boxShadow: view === v ? "0 2px 8px rgba(0,0,0,.06)" : "none"
+                  boxShadow: view === v ? "0 2px 8px rgba(0,0,0,.2)" : "none",
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 }}>
                   {v === "login" ? "Sign In" : "Sign Up"}
                 </button>
@@ -336,7 +379,7 @@ export default function App({ onLoginSuccess }) {
             </div>
 
             {view === "login" ? (
-              <>
+              <div onKeyDown={e => { if (e.key === "Enter") handleLogin(); }}>
                 <InputField icon="✉" label="Email" value={lEmail} onChange={setLEmail} placeholder="you@email.com" error={lErrors.email} />
                 <InputField icon="🔒" label="Password" type="password" value={lPass} onChange={setLPass} placeholder="Enter password" error={lErrors.password} />
                 <div style={{ textAlign: "right", marginBottom: 20 }}>
@@ -348,9 +391,9 @@ export default function App({ onLoginSuccess }) {
                   <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.9 33.5 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.2-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.5 18.8 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.4 0-9.9-3.5-11.3-8.3l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.7 39.5 44 34 44 24c0-1.3-.2-2.7-.4-3.9z"/></svg>
                   Continue with Google
                 </Button>
-              </>
+              </div>
             ) : (
-              <>
+              <div onKeyDown={e => { if (e.key === "Enter") handleSignup(); }}>
                 <InputField icon="👤" label="Full Name" value={sName} onChange={setSName} placeholder="John Doe" error={sErrors.name} />
                 <InputField icon="✉" label="Email" value={sEmail} onChange={setSEmail} placeholder="you@email.com" error={sErrors.email} />
                 <InputField icon="🔒" label="Password" type="password" value={sPass} onChange={setSPass} placeholder="Min 8 characters" error={sErrors.password} />
@@ -361,7 +404,7 @@ export default function App({ onLoginSuccess }) {
                   <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.9 33.5 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.2-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.5 18.8 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.4 0-9.9-3.5-11.3-8.3l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.7 39.5 44 34 44 24c0-1.3-.2-2.7-.4-3.9z"/></svg>
                   Sign up with Google
                 </Button>
-              </>
+              </div>
             )}
           </>
         )}

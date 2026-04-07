@@ -14,6 +14,9 @@ class Profile(models.Model):
     # Worker-side rating (received as a job doer)
     worker_rating     = models.FloatField(default=0)
     worker_reviews    = models.IntegerField(default=0)
+    # Trust scores (0–100, recalculated by compute_trust_scores())
+    customer_trust = models.FloatField(default=0)
+    worker_trust   = models.FloatField(default=0)
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
