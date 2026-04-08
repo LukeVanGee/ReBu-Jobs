@@ -27,3 +27,4 @@ __pycache__/
 *.pyc 
 db.sqlite3 
 node_modules/ 
+backend/myproject/myproject/.my_pgpass
