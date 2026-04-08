@@ -2,14 +2,18 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
+import datetime
 
 
 class Profile(models.Model):
-    ROLE_CHOICES = [('customer', 'Customer'), ('worker', 'Worker')]
-    user         = models.OneToOneField(User, on_delete=models.CASCADE)
-    role         = models.CharField(max_length=10, choices=ROLE_CHOICES, default='customer')
-    rating       = models.FloatField(default=0)
-    review_count = models.IntegerField(default=0)
+    user              = models.OneToOneField(User, on_delete=models.CASCADE)
+    # Customer-side rating (received as a job poster)
+    customer_rating   = models.FloatField(default=0)
+    customer_reviews  = models.IntegerField(default=0)
+    # Worker-side rating (received as a job doer)
+    worker_rating     = models.FloatField(default=0)
+    worker_reviews    = models.IntegerField(default=0)
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
@@ -17,10 +21,29 @@ def create_profile(sender, instance, created, **kwargs):
         Profile.objects.create(user=instance)
 
 
+class PendingSignup(models.Model):
+    """
+    Temporarily holds signup data while the user verifies their email.
+    Expires after 15 minutes. Cleaned up on successful verification or expiry.
+    """
+    email      = models.EmailField(unique=True)
+    password   = models.CharField(max_length=128)
+    name       = models.CharField(max_length=150)
+    code       = models.CharField(max_length=6)
+    attempts   = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + datetime.timedelta(minutes=15)
+
+    def __str__(self):
+        return f"PendingSignup({self.email})"
+
+
 class Job(models.Model):
     STATUS_CHOICES = [
         ('open',    'Open'),
-        ('pending', 'Pending Approval'),  # worker requested, awaiting customer accept
+        ('pending', 'Pending Approval'),
         ('taken',   'Taken'),
         ('done',    'Done'),
     ]
@@ -37,20 +60,13 @@ class Job(models.Model):
 
 
 class Conversation(models.Model):
-    """
-    One conversation thread between two users.
-    job_request tracks which job triggered the conversation (nullable
-    so general messages are still possible in the future).
-    """
     user_one    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='convos_as_one')
     user_two    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='convos_as_two')
-    # Soft link to the job that started this thread — null for non-job conversations
     job         = models.ForeignKey(Job, on_delete=models.SET_NULL, null=True, blank=True, related_name='conversations')
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
 
     class Meta:
-        # A pair of users can only have one active conversation per job
         constraints = [
             models.UniqueConstraint(fields=['user_one', 'user_two', 'job'], name='unique_conversation_per_job')
         ]
@@ -63,10 +79,10 @@ class Conversation(models.Model):
 class Message(models.Model):
     MSG_TYPE_CHOICES = [
         ('text',         'Text'),
-        ('job_request',  'Job Request'),   # system card — worker requesting the job
-        ('job_accepted', 'Job Accepted'),  # system card — customer approved
-        ('job_declined',   'Job Declined'),   # system card — customer declined
-        ('job_completed',  'Job Completed'),  # system card — worker marked done
+        ('job_request',  'Job Request'),
+        ('job_accepted', 'Job Accepted'),
+        ('job_declined',   'Job Declined'),
+        ('job_completed',  'Job Completed'),
     ]
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     sender       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')

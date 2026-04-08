@@ -78,3 +78,10 @@ REST_FRAMEWORK = {
 STATIC_URL = '/static/'
 
 CORS_ALLOW_ALL_ORIGINS = True  # fine for local dev
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'#currently configured for local host
+EMAIL_HOST         = 'smtp.gmail.com'
+EMAIL_PORT         = 587
+EMAIL_USE_TLS      = True
+EMAIL_HOST_USER    = 'you@gmail.com'
+EMAIL_HOST_PASSWORD = 'your-app-password'   # use an App Password, not your real password
+DEFAULT_FROM_EMAIL = 'no-reply@rebu.app'
