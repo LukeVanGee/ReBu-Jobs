@@ -4,8 +4,10 @@ const API_URL = "http://localhost:8000/api";
 
 const CATEGORIES = [
   "Plumbing", "Electrical", "Painting", "Carpentry", "Cleaning",
-  "Landscaping", "Moving", "Appliance Repair", "Roofing", "General Handyman"
+  "Landscaping", "Moving", "Appliance Repair", "Roofing", "General Handyman",
+  "Other"
 ];
+
 
 const Field = ({ label, required, error, children }) => (
   <div style={{ marginBottom: 20 }}>

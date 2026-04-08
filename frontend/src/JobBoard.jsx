@@ -83,12 +83,14 @@ export default function JobBoard({ user, onNavigate }) {
 
   // ── filters ───────────────────────────────────────────────────────────────
   const filteredJobs = jobs.filter(job => {
+    if (job.status === "done") return false;
     const matchesCategory = selectedCategory === "All" || job.category === selectedCategory;
     const matchesSearch   = !searchQuery ||
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0f1a", color: "#e2e8f0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>

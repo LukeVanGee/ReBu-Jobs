@@ -4,11 +4,12 @@ const API = "http://localhost:8000";
 
 export default function Messages({ user }) {
   const [convos, setConvos]           = useState([]);
-  const [activeId, setActiveId]       = useState(null);   // replaces useParams
+  const [activeId, setActiveId]       = useState(null);
   const [messages, setMessages]       = useState([]);
   const [newMsg, setNewMsg]           = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading]         = useState(true);
-  const [acting, setActing]           = useState(false);  // approve/decline in-flight
+  const [acting, setActing]           = useState(false);
   const bottomRef                     = useRef(null);
   const pollRef                       = useRef(null);
 
@@ -94,7 +95,6 @@ export default function Messages({ user }) {
     if (activeId) fetchMessages();
   }, [activeId]);
 
-  // poll every 5 s while a conversation is open
   useEffect(() => {
     clearInterval(pollRef.current);
     if (activeId) {
@@ -110,6 +110,17 @@ export default function Messages({ user }) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
+
+  // ── filter conversations by search query ─────────────────────────────────
+  const filteredConvos = convos.filter(c => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (c.other_user_name || "").toLowerCase().includes(q) ||
+      (c.job_title || "").toLowerCase().includes(q) ||
+      (c.last_message || "").toLowerCase().includes(q)
+    );
+  });
 
   const activeConvo = convos.find(c => c.id === activeId);
   const isCustomer  = user?.role === "customer";
@@ -128,7 +139,6 @@ export default function Messages({ user }) {
   const renderMessage = (m) => {
     const isMine = m.sender_id === user?.id;
 
-    // ── job_request card (only customer sees Accept/Decline) ──
     if (m.msg_type === "job_request") {
       return (
         <div key={m.id} style={{ alignSelf: "center", width: "100%", maxWidth: 420, margin: "4px 0" }}>
@@ -137,7 +147,6 @@ export default function Messages({ user }) {
             border: "1px solid rgba(251,191,36,0.25)",
             background: "rgba(251,191,36,0.05)",
           }}>
-            {/* card header */}
             <div style={{
               padding: "10px 16px", display: "flex", alignItems: "center", gap: 8,
               borderBottom: "1px solid rgba(251,191,36,0.15)",
@@ -148,12 +157,10 @@ export default function Messages({ user }) {
                 Job Request
               </span>
             </div>
-            {/* card body */}
             <div style={{ padding: "12px 16px" }}>
               <p style={{ fontSize: 13, color: "#e2e8f0", margin: "0 0 12px 0", lineHeight: 1.5 }}>
                 {m.text}
               </p>
-              {/* Only the customer who owns the job sees the buttons */}
               {isCustomer && activeConvo?.job_id && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
@@ -193,7 +200,6 @@ export default function Messages({ user }) {
       );
     }
 
-    // ── job_accepted / job_declined / job_completed system notice ──
     if (["job_accepted", "job_declined", "job_completed"].includes(m.msg_type)) {
       const styles = {
         job_accepted:  { bg: "rgba(16,185,129,0.08)",  border: "rgba(16,185,129,0.2)",  color: "#34d399", icon: "✓" },
@@ -216,7 +222,6 @@ export default function Messages({ user }) {
       );
     }
 
-    // ── normal text bubble ──
     return (
       <div key={m.id} style={{ alignSelf: isMine ? "flex-end" : "flex-start", maxWidth: "65%" }}>
         <div style={{
@@ -256,12 +261,37 @@ export default function Messages({ user }) {
         <div style={{ padding: "20px", fontSize: 16, fontWeight: 600, borderBottom: "1px solid #1e293b", color: "#f1f5f9" }}>
           Messages
         </div>
+
+        {/* ── Search bar ── */}
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #1e293b" }}>
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", fontSize: 14 }}>⌕</span>
+            <input
+              type="text"
+              placeholder="Search by name, job, or message..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%", padding: "9px 12px 9px 32px", borderRadius: 8,
+                border: "1px solid #1e293b", background: "#0a0f1a",
+                color: "#e2e8f0", fontSize: 13, outline: "none",
+                fontFamily: "inherit", boxSizing: "border-box",
+                transition: "border-color 0.15s",
+              }}
+              onFocus={e => e.target.style.borderColor = "rgba(56,189,248,0.35)"}
+              onBlur={e => e.target.style.borderColor = "#1e293b"}
+            />
+          </div>
+        </div>
+
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {convos.length === 0 ? (
+          {filteredConvos.length === 0 ? (
             <div style={{ padding: 20, color: "#475569", fontSize: 13 }}>
-              No conversations yet. Accept or post a job to start chatting!
+              {searchQuery.trim()
+                ? `No conversations matching "${searchQuery}"`
+                : "No conversations yet. Accept or post a job to start chatting!"}
             </div>
-          ) : convos.map(c => (
+          ) : filteredConvos.map(c => (
             <div
               key={c.id}
               onClick={() => setActiveId(c.id)}
@@ -301,7 +331,6 @@ export default function Messages({ user }) {
           </div>
         ) : (
           <>
-            {/* chat header */}
             <div style={{ padding: "16px 24px", borderBottom: "1px solid #1e293b", fontWeight: 600, fontSize: 16, color: "#f1f5f9", background: "#0f1629" }}>
               {activeConvo?.other_user_name || "Chat"}
               {activeConvo?.job_title && (
@@ -311,7 +340,6 @@ export default function Messages({ user }) {
               )}
             </div>
 
-            {/* messages */}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
               {messages.length === 0
                 ? <div style={{ alignSelf: "center", color: "#475569", fontSize: 14, fontStyle: "italic" }}>No messages yet — say hello!</div>
@@ -320,7 +348,6 @@ export default function Messages({ user }) {
               <div ref={bottomRef} />
             </div>
 
-            {/* input */}
             <div style={{ padding: "16px 24px", borderTop: "1px solid #1e293b", display: "flex", gap: 12, alignItems: "center", background: "#0f1629" }}>
               <textarea
                 rows={1}
