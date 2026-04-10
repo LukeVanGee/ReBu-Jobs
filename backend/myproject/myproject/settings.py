@@ -2,6 +2,19 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+DATABASE_URL = 'https://agahlmejidbzijkaidlt.supabase.co'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': '',
+        'HOST': 'db.agahlmejidbzijkaidlt.supabase.co',
+        'PORT': '5432',
+    }
+}
+
 SECRET_KEY = 'django-insecure-change-me-in-production-abc123xyz'
 
 DEBUG = True
@@ -17,7 +30,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
-    'myproject',
     'api',
 ]
 
@@ -56,16 +68,6 @@ TEMPLATES = [
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "OPTIONS": {
-            "service": "my_service",
-            "passfile": ".my_pgpass",
-        },
-    }
-}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
