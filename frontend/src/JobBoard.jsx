@@ -6,12 +6,12 @@ const categoryFilters = ["All", "Lawn Care", "Snow Removal", "Groceries", "Clean
 
 const statusColors = {
   open:    { bg: "rgba(52, 211, 153, 0.12)",  color: "#34d399" },
-  pending: { bg: "rgba(251, 191, 36, 0.12)",  color: "#fbbf24" },  // ← NEW
+  pending: { bg: "rgba(251, 191, 36, 0.12)",  color: "#fbbf24" },
   taken:   { bg: "rgba(239, 68, 68, 0.12)",   color: "#f87171" },
 };
 const statusLabels = {
   open:    "Open",
-  pending: "Pending Approval",   // ← NEW
+  pending: "Pending Approval",
   taken:   "Taken",
 };
 
@@ -23,8 +23,9 @@ export default function JobBoard({ user, onNavigate }) {
   const [jobs, setJobs]                         = useState([]);
   const [loading, setLoading]                   = useState(true);
   const [error, setError]                       = useState(null);
-  const [requesting, setRequesting]             = useState(null); // job id in-flight
-  const [toast, setToast]                       = useState(null); // { msg, type }
+  const [requesting, setRequesting]             = useState(null);
+  const [toast, setToast]                       = useState(null);
+  const [workerAddress, setWorkerAddress]        = useState("");
 
   const authHeaders = {
     "Content-Type": "application/json",
@@ -56,20 +57,22 @@ export default function JobBoard({ user, onNavigate }) {
   }, []);
 
   // ── request job (worker) ──────────────────────────────────────────────────
-  // POST /api/jobs/<id>/request/
-  // → sets job.status = "pending", creates Conversation + job_request Message
   const handleRequest = async (e, jobId) => {
     e.stopPropagation();
+    if (!workerAddress.trim()) {
+      showToast("Please enter your address first.", "error");
+      return;
+    }
     setRequesting(jobId);
     try {
       const res = await fetch(`${API_BASE}/jobs/${jobId}/request/`, {
         method: "POST",
         headers: authHeaders,
+        body: JSON.stringify({ worker_address: workerAddress }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to request job");
 
-      // Optimistic update — lock the card immediately
       setJobs(prev =>
         prev.map(j => j.id === jobId ? { ...j, status: "pending" } : j)
       );
@@ -130,6 +133,30 @@ export default function JobBoard({ user, onNavigate }) {
           </div>
         </div>
 
+        {/* ── WORKER ADDRESS INPUT ─────────────────────────────────────────── */}
+        {role === "worker" && (
+          <div style={{ marginBottom: "16px" }}>
+            <input
+              type="text"
+              placeholder="Enter your address (e.g. 123 Main St, Syracuse, NY)"
+              value={workerAddress}
+              onChange={e => setWorkerAddress(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 16px",
+                borderRadius: "10px",
+                border: "1px solid rgba(56,189,248,0.12)",
+                background: "#111827",
+                color: "#e2e8f0",
+                fontSize: "14px",
+                outline: "none",
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+        )}
+
         {/* Search + Filters */}
         <div style={{ display: "flex", gap: "16px", marginBottom: "24px", alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ position: "relative", flex: "1", minWidth: "250px", maxWidth: "400px" }}>
@@ -171,7 +198,6 @@ export default function JobBoard({ user, onNavigate }) {
                     background: hoveredJob === job.id ? "rgba(56,189,248,0.03)" : "#111827",
                     border: hoveredJob === job.id ? "1px solid rgba(56,189,248,0.12)" : "1px solid rgba(56,189,248,0.04)",
                     cursor: "pointer", transition: "all 0.15s ease",
-                    // Dim jobs that are locked by someone else
                     opacity: isPending && !isMyRequest ? 0.55 : 1,
                   }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -181,7 +207,6 @@ export default function JobBoard({ user, onNavigate }) {
                         <span style={{ padding: "2px 10px", borderRadius: "12px", background: sc.bg, color: sc.color, fontSize: "11px", fontWeight: 600 }}>
                           {statusLabels[job.status] || job.status}
                         </span>
-                        {/* Badge so the worker knows this is their own pending request */}
                         {isMyRequest && (
                           <span style={{ padding: "2px 10px", borderRadius: "12px", background: "rgba(167,139,250,0.12)", color: "#a78bfa", fontSize: "11px", fontWeight: 600 }}>
                             Your Request
@@ -228,7 +253,6 @@ export default function JobBoard({ user, onNavigate }) {
                             </button>
                           )}
 
-                          {/* This worker's pending request */}
                           {isMyRequest && (
                             <button
                               onClick={e => { e.stopPropagation(); onNavigate("messages"); }}
@@ -244,7 +268,6 @@ export default function JobBoard({ user, onNavigate }) {
                             </button>
                           )}
 
-                          {/* Locked by someone else */}
                           {isPending && !isMyRequest && (
                             <span style={{ fontSize: "12px", color: "#475569", fontStyle: "italic" }}>
                               Awaiting approval
