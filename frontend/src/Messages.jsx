@@ -123,7 +123,10 @@ export default function Messages({ user }) {
   });
 
   const activeConvo = convos.find(c => c.id === activeId);
-  const isCustomer  = user?.role === "customer";
+
+  // ── Check if the job is still pending (buttons should only show while pending)
+  const jobStillPending = messages.some(m => m.msg_type === "job_request")
+    && !messages.some(m => ["job_accepted", "job_declined"].includes(m.msg_type));
 
   // ── format timestamp ─────────────────────────────────────────────────────
   const fmt = (dateStr) => {
@@ -140,6 +143,11 @@ export default function Messages({ user }) {
     const isMine = m.sender_id === user?.id;
 
     if (m.msg_type === "job_request") {
+      // The worker sends the job_request message.
+      // If the current user is NOT the sender, they are the customer
+      // and should see the accept/decline buttons.
+      const isCustomerForThisJob = m.sender_id !== user?.id;
+
       return (
         <div key={m.id} style={{ alignSelf: "center", width: "100%", maxWidth: 420, margin: "4px 0" }}>
           <div style={{
@@ -161,7 +169,7 @@ export default function Messages({ user }) {
               <p style={{ fontSize: 13, color: "#e2e8f0", margin: "0 0 12px 0", lineHeight: 1.5 }}>
                 {m.text}
               </p>
-              {isCustomer && activeConvo?.job_id && (
+              {isCustomerForThisJob && activeConvo?.job_id && jobStillPending && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => handleApprove(activeConvo.job_id)}

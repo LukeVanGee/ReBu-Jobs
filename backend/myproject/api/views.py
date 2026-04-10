@@ -152,9 +152,9 @@ def _serialize_job(job):
         'rate':           job.rate,
         'location':       job.location,
         'customer_lat':   job.customer_lat,
-        'customer_lng':  job.customer_lng, 
+        'customer_lng':  job.customer_lng,
         'worker_location': job.worker_location,
-        'worker_lat':     job.worker_lat, 
+        'worker_lat':     job.worker_lat,
         'worker_lng':    job.worker_lng,
         'date_needed':    str(job.date_needed),
         'status':         job.status,
@@ -184,8 +184,13 @@ def create_job(request):
             location    = request.data.get('location'),
             date_needed = request.data.get('date_needed'),
         )
-        # Geocoding address and saving it to the lat and long
-        job.customer_lat, job.customer_lng = geocode_address(job.location)
+        # Geocode the customer address — safe if it fails
+        result = geocode_address(job.location)
+        if result:
+            job.customer_lat, job.customer_lng = result
+        else:
+            job.customer_lat, job.customer_lng = None, None
+        job.save()
         return Response({'id': job.id, 'message': 'Job created successfully'}, status=201)
     except Exception as ex:
         return Response({'error': str(ex)}, status=400)
@@ -210,18 +215,19 @@ def request_job(request, job_id):
         return Response({'error': 'This job is no longer available.'}, status=400)
     if job.posted_by == request.user:
         return Response({'error': 'You cannot request your own job.'}, status=400)
-    
+
     # Get worker location from request
     worker_address = request.data.get('worker_address')
 
     if not worker_address:
         return Response({'error': 'Worker address is required'}, status=400)
 
-    # Geocode worker location
-    worker_lat, worker_lng = geocode_address(worker_address)
+    # Geocode worker location — safe if it fails
+    result = geocode_address(worker_address)
+    if not result:
+        return Response({'error': 'Could not geocode worker address. Check the address and try again.'}, status=400)
 
-    if not worker_lat or not worker_lng:
-        return Response({'error': 'Invalid worker address'}, status=400)
+    worker_lat, worker_lng = result
 
     # Save worker location ON JOB
     job.assigned_to   = request.user
@@ -232,12 +238,14 @@ def request_job(request, job_id):
     job.save()
 
     # Calculate ETA immediately
-    eta = calculate_eta(
-        worker_lat,
-        worker_lng,
-        job.customer_lat,
-        job.customer_lng
-    )
+    eta = None
+    if job.customer_lat and job.customer_lng:
+        eta = calculate_eta(
+            worker_lat,
+            worker_lng,
+            job.customer_lat,
+            job.customer_lng
+        )
 
     u1, u2 = (
         (job.posted_by, request.user)
@@ -342,7 +350,7 @@ def drop_job(request, job_id):
     return Response({'success': True})
 
 
-# THIS IS TO CALCULATE THE DISTANCE BETWEEN TWO LOCATIONS 
+# THIS IS TO CALCULATE THE DISTANCE BETWEEN TWO LOCATIONS
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

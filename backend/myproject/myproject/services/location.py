@@ -1,8 +1,11 @@
 import requests
 import os
-import googlemaps
+from dotenv import load_dotenv
 
-GOOGLE_API_KEY = 'AIzaSyD41T8-udWW_CdsrhRPZgU8jkbzy5jnF04'
+load_dotenv()
+
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+
 
 def geocode_address(address):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
@@ -42,9 +45,3 @@ def calculate_eta(origin_lat, origin_lng, dest_lat, dest_lng):
         "distance": element["distance"]["text"],
         "duration": element["duration"]["text"]
     }
-
-# print(calculate_eta(40.7404549, -73.7802131, 40.759987, -73.9912338))
-# print(geocode_address('194-16b 64th Ave, Fresh Meadows, NY 11365'))
-
-# (40.7404549, -73.7802131)
-# (40.759987, -73.9912338)
